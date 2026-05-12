@@ -1,0 +1,36 @@
+Projeto Final: Sistema de Gestão de Eventos Escalável (EventMaster)
+1. O Problema
+Uma empresa de venda de ingressos está enfrentando problemas com seu sistema monolítico atual. Durante grandes lançamentos, o sistema cai devido ao alto volume de acessos (latência), a base de dados fica inconsistente e houve tentativas recentes de ataques de injeção de dados.
+
+2. O Desafio
+Os alunos, em grupos obrigatoriamente de no mínimo 3 pessoas, deverão desenhar e prototipar a nova arquitetura do sistema EventMaster, aplicando os conceitos de Arquitetura Limpa e Microsserviços.
+
+Requisitos do Projeto
+Fase 1: Design e Estrutura
+Documentação Arquitetural: Apresentar um diagrama de componentes mostrando a transição do Monolito para Microsserviços.
+
+DDD (Domain-Driven Design): Identificar pelo menos dois contextos delimitados (ex: Catálogo de Eventos e Venda/Pagamento).
+
+Padrões de Resiliência: Implementar ou descrever onde seriam aplicados o API Gateway, Circuit Breaker e como o Padrão SAGA resolveria a consistência entre o estoque de ingressos e o pagamento.
+
+Fase 2: Processamento e Performance
+Modelo de Dados: Definir qual parte do sistema usará processamento Stream (ex: monitoramento de acessos em tempo real) e qual será Batch (ex: relatório financeiro diário para os organizadores).
+
+Fase 3: Segurança
+Autenticação: Implementar ou desenhar o fluxo de login utilizando oAuth 2.0 / JWT.
+
+Segurança por Design: Listar como o sistema se protege contra as vulnerabilidades do OWASP Top 10 (ex: validação de inputs e uso de Zero Trust entre os serviços).
+
+Fase 4: Qualidade e Testes
+Código Limpo: O protótipo de um dos serviços deve seguir os princípios SOLID e utilizar pelo menos um Design Pattern (GoF) (ex: Strategy para diferentes métodos de pagamento).
+
+Testes: Demonstrar a Pirâmide de Testes, incluindo testes unitários (TDD) para a lógica de negócio e pelo menos um cenário de teste de comportamento (BDD).
+
+3. Entregáveis
+Relatório Técnico: Justificativa das decisões arquiteturais (impacto na escalabilidade e manutenção).
+
+Repositório de Código: Contendo o esqueleto da solução (Clean Architecture) e a implementação de um dos microsserviços.
+
+Suíte de Testes: Comprovando a cobertura de testes da funcionalidade principal.
+
+Todos os entregáveis devem estar no GitHub (ex: o microsservico implementado com README e/ou relatório técnico em formato PDF ou MD na raiz do projeto)

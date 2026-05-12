@@ -1,5 +1,7 @@
 # eventmaster-mod1-ada
 
+Projeto Final - Módulo 01 - Arquitetura
+
 Monorepo Maven para os servicos do projeto EventMaster.
 
 ## Estrutura
