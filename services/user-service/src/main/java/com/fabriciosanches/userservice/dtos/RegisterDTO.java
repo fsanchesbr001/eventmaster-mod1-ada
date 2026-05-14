@@ -1,8 +1,16 @@
 package com.fabriciosanches.userservice.dtos;
 
 import com.fabriciosanches.userservice.enums.UserRole;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-public record RegisterDTO(String login, String senha, UserRole role, String nome, String cpf) {
+@Schema(name = "RegisterDTO", description = "Payload para cadastro de um novo usuario")
+public record RegisterDTO(
+        @Schema(description = "Login/email do usuario", example = "admin@eventmaster.com") String login,
+        @Schema(description = "Senha do usuario", example = "Senha@123") String senha,
+        @Schema(description = "Perfil de acesso", example = "ADMIN") UserRole role,
+        @Schema(description = "Nome completo do usuario", example = "Fabricio Sanches") String nome,
+        @Schema(description = "CPF do usuario", example = "12345678900") String cpf
+) {
 
     public RegisterDTO {
         if (login == null || login.isBlank()) {

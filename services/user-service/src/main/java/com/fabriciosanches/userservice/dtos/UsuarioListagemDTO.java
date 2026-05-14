@@ -1,12 +1,14 @@
 package com.fabriciosanches.userservice.dtos;
 
 import com.fabriciosanches.userservice.domain.Usuario;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(name = "UsuarioListagemDTO", description = "Dados resumidos de um usuario")
 public record UsuarioListagemDTO(
 
-        String nome,
-        String role,
-        String login
+        @Schema(description = "Nome completo", example = "Fabricio Sanches") String nome,
+        @Schema(description = "Perfil do usuario", example = "ADMIN") String role,
+        @Schema(description = "Login/email", example = "admin@eventmaster.com") String login
 ) {
 
 
