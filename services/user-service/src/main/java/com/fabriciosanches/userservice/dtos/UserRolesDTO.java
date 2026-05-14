@@ -1,5 +1,10 @@
 package com.fabriciosanches.userservice.dtos;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.List;
 
-public record UserRolesDTO(List<RoleOptionDTO> roles) { }
+@Schema(name = "UserRolesDTO", description = "Envelope com as roles disponiveis")
+public record UserRolesDTO(
+		@Schema(description = "Lista de perfis de acesso disponiveis") List<RoleOptionDTO> roles
+) { }

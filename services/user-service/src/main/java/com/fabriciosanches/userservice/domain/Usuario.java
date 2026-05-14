@@ -65,35 +65,23 @@ public class Usuario implements UserDetails {
         return login;
     }
 
-    /**
-     * @return
-     */
     @Override
     public boolean isAccountNonExpired() {
-        return false;
+        return true;
     }
 
-    /**
-     * @return
-     */
     @Override
     public boolean isAccountNonLocked() {
-        return false;
+        return true;
     }
 
-    /**
-     * @return
-     */
     @Override
     public boolean isCredentialsNonExpired() {
-        return false;
+        return true;
     }
 
-    /**
-     * @return
-     */
     @Override
     public boolean isEnabled() {
-        return false;
+        return true;
     }
 }
