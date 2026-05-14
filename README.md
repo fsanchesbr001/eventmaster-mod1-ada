@@ -113,6 +113,7 @@ As respostas de erro dos endpoints documentados seguem o formato:
 Com o `gateway-service` rodando na porta `8081` e o `user-service` na `8080`, as rotas principais sao:
 
 - API usuarios: `http://localhost:8081/api/users/**` -> `http://localhost:8080/user-service/usuarios/**`
+- Auth user-service: `http://localhost:8081/api/auth/**` -> `http://localhost:8080/auth/**`
 - OpenAPI user-service: `http://localhost:8081/api/users/v3/api-docs`
 - Swagger UI user-service via gateway: `http://localhost:8081/api/users/swagger-ui/index.html`
 
@@ -120,6 +121,15 @@ Variaveis uteis:
 
 - `USER_SERVICE_URL` (default: `http://localhost:8080`)
 - `PORT` para porta do gateway (default: `8081`)
+- `JWT_SECRET` segredo do token (deve ser igual ao `user-service`)
+- `JWT_ISSUER` issuer do token (default: `API Ficha Tecnica`)
+
+### Estrategia de autenticacao adotada
+
+- O `gateway-service` valida JWT em rotas protegidas (assinatura, issuer e expiracao).
+- O `user-service` tambem valida o JWT (defesa em profundidade).
+- Rotas publicas no gateway: `POST /api/auth/login`, docs Swagger e `OPTIONS`.
+- `POST /api/auth/logout` e `/api/users/**` exigem token.
 
 ## Observabilidade no Gateway
 

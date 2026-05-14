@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.fabriciosanches</groupId>
         <artifactId>eventmaster-mod1-ada</artifactId>
-        <version>0.0.1</version>
+        <version>0.0.2</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <artifactId>gateway-service</artifactId>
@@ -38,6 +38,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.auth0</groupId>
+            <artifactId>java-jwt</artifactId>
+            <version>4.4.0</version>
         </dependency>
         <!-- Dependência principal do API Gateway -->
         <dependency>
