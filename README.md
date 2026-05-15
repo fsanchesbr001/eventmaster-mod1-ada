@@ -96,6 +96,30 @@ As respostas de erro dos endpoints documentados seguem o formato:
 }
 ```
 
+## Testes via Postman
+
+Os arquivos de apoio para testes manuais do `user-service` estao em `docs/postman/`:
+
+- Collection: `docs/postman/eventmaster-user-service-auth.postman_collection.json`
+- Environment: `docs/postman/eventmaster-user-service-local.postman_environment.json`
+- Guia rapido: `docs/postman/README.md`
+
+### Fluxo coberto na collection
+
+1. `Login`
+2. `Chamada protegida`
+3. `Logout`
+4. `Chamada pos-logout`
+
+### Como usar
+
+1. Importe a collection e o environment no Postman.
+2. Selecione o environment `EventMaster - User Service Local`.
+3. Garanta que o `user-service` esteja rodando em `http://localhost:8080`.
+4. Execute os requests na ordem definida na collection.
+
+Observacao: apos o logout, a collection limpa a variavel `jwt` e preserva o token revogado em `revokedJwt` apenas para validar o teste final de token revogado.
+
 ### 4) Empacotar apenas o `user-service`
 
 ```powershell
