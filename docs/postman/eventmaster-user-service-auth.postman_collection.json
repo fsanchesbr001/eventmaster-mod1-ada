@@ -1,0 +1,224 @@
+{
+  "info": {
+    "_postman_id": "1d0ffbc5-8a69-4e0e-9ad3-f76cce9a9f01",
+    "name": "EventMaster - User Service Auth Flow",
+    "description": "Collection de testes do fluxo de autenticação do user-service: login, chamada protegida, logout e validação pós-logout.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "revokedJwt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "login",
+      "value": "admin@eventmaster.com",
+      "type": "string"
+    },
+    {
+      "key": "senha",
+      "value": "Senha@123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{login}}\",\n  \"senha\": \"{{senha}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Autentica o usuário e salva o JWT na variável de environment `jwt`."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no login', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('JWT retornado', function () {",
+              "    pm.expect(json.jwt).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.environment.unset('revokedJwt');",
+              "pm.environment.set('jwt', json.jwt);",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Chamada protegida (roles)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user-service/usuarios/roles",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user-service",
+            "usuarios",
+            "roles"
+          ]
+        },
+        "description": "Valida que o endpoint protegido aceita o JWT obtido no login."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 na chamada protegida', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Payload contém roles', function () {",
+              "    pm.expect(json.roles).to.be.an('array');",
+              "    pm.expect(json.roles.length).to.be.greaterThan(0);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "logout"
+          ]
+        },
+        "description": "Revoga o token atual via blacklist do user-service."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no logout', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Mensagem de logout OK', function () {",
+              "    pm.expect(json.message).to.eql('Logout realizado com sucesso. Sessão encerrada.');",
+              "});",
+              "",
+              "pm.environment.set('revokedJwt', pm.environment.get('jwt'));",
+              "pm.environment.unset('jwt');",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Chamada pós-logout",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{revokedJwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user-service/usuarios/roles",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user-service",
+            "usuarios",
+            "roles"
+          ]
+        },
+        "description": "Confirma que o token anteriormente emitido foi invalidado após o logout."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 401 após logout', function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Erro de token revogado', function () {",
+              "    pm.expect(json.error).to.eql('Token revogado');",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+
