@@ -1,0 +1,504 @@
+{
+  "info": {
+    "_postman_id": "8fa5f10a-7945-4303-8b61-6db2f1c8b85f",
+    "name": "EventMaster - User Service CRUD via Gateway",
+    "description": "Collection para autenticar via API Gateway e validar o CRUD administrativo de usuarios do user-service exposto em /api/users.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "jwt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "login",
+      "value": "fsanchesbr001@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "senha",
+      "value": "Event@123",
+      "type": "string"
+    },
+    {
+      "key": "crudRunId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "crudUserLogin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "crudUserName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "crudUpdatedName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "crudUserRole",
+      "value": "USER",
+      "type": "string"
+    },
+    {
+      "key": "crudUpdatedRole",
+      "value": "SYSTEM",
+      "type": "string"
+    },
+    {
+      "key": "crudUserCpf",
+      "value": "12345678900",
+      "type": "string"
+    },
+    {
+      "key": "crudUserPassword",
+      "value": "Event@123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Login via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{login}}\",\n  \"senha\": \"{{senha}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Obtém um JWT através do gateway e inicializa as variáveis dinâmicas do fluxo CRUD de usuários."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no login via gateway', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('JWT retornado no login via gateway', function () {",
+              "    pm.expect(json.jwt).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "const runId = String(Date.now());",
+              "pm.environment.set('jwt', json.jwt);",
+              "pm.environment.set('crudRunId', runId);",
+              "pm.environment.set('crudUserLogin', `crud.gateway.${runId}@eventmaster.com`);",
+              "pm.environment.set('crudUserName', `Crud Gateway ${runId}`);",
+              "pm.environment.set('crudUpdatedName', `Crud Gateway Atualizado ${runId}`);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Listar roles via Gateway",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/roles",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "roles"
+          ]
+        },
+        "description": "Consulta as roles expostas pelo user-service através do gateway."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao listar roles via gateway', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Payload contem lista de roles via gateway', function () {",
+              "    pm.expect(json.roles).to.be.an('array');",
+              "    pm.expect(json.roles.length).to.be.greaterThan(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Registrar usuario via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{crudUserLogin}}\",\n  \"senha\": \"{{crudUserPassword}}\",\n  \"role\": \"{{crudUserRole}}\",\n  \"nome\": \"{{crudUserName}}\",\n  \"cpf\": \"{{crudUserCpf}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/users/registrar-usuario",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "registrar-usuario"
+          ]
+        },
+        "description": "Cadastra um usuário de teste via gateway com login dinâmico para evitar conflito entre execuções."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao registrar usuario via gateway', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Buscar usuario criado via Gateway",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/buscar-usuario/{{crudUserLogin}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "buscar-usuario",
+            "{{crudUserLogin}}"
+          ]
+        },
+        "description": "Busca o usuário recém-criado pelo gateway."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao buscar usuario criado via gateway', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Usuario criado retornado corretamente via gateway', function () {",
+              "    pm.expect(json.login).to.eql(pm.environment.get('crudUserLogin'));",
+              "    pm.expect(json.nome).to.eql(pm.environment.get('crudUserName'));",
+              "    pm.expect(json.role).to.eql(pm.environment.get('crudUserRole'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Atualizar usuario via Gateway",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"{{crudUpdatedName}}\",\n  \"role\": \"{{crudUpdatedRole}}\",\n  \"login\": \"{{crudUserLogin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/users/atualizar-usuario/{{crudUserLogin}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "atualizar-usuario",
+            "{{crudUserLogin}}"
+          ]
+        },
+        "description": "Atualiza o nome e a role do usuário criado através do gateway."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao atualizar usuario via gateway', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Usuario atualizado retornado corretamente via gateway', function () {",
+              "    pm.expect(json.login).to.eql(pm.environment.get('crudUserLogin'));",
+              "    pm.expect(json.nome).to.eql(pm.environment.get('crudUpdatedName'));",
+              "    pm.expect(json.role).to.eql(pm.environment.get('crudUpdatedRole'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - Listar todos os usuarios via Gateway",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/listar-todos-usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "listar-todos-usuarios"
+          ]
+        },
+        "description": "Executa a listagem geral de usuários através do gateway."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao listar usuarios via gateway', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Payload de listagem e um array via gateway', function () {",
+              "    pm.expect(json).to.be.an('array');",
+              "    pm.expect(json.length).to.be.greaterThan(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 - Excluir usuario via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"{{crudUpdatedName}}\",\n  \"role\": \"{{crudUpdatedRole}}\",\n  \"login\": \"{{crudUserLogin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/users/excluir-usuario",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "excluir-usuario"
+          ]
+        },
+        "description": "Exclui o usuário criado no fluxo através do gateway."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao excluir usuario via gateway', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8 - Buscar usuario excluido via Gateway",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/users/buscar-usuario/{{crudUserLogin}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "users",
+            "buscar-usuario",
+            "{{crudUserLogin}}"
+          ]
+        },
+        "description": "Valida o comportamento atual da API após a exclusão, via gateway: retorno 200 com campos nulos."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao buscar usuario excluido via gateway (comportamento atual)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Usuario excluido retorna payload nulo no comportamento atual via gateway', function () {",
+              "    pm.expect(json.login).to.eql(null);",
+              "    pm.expect(json.nome).to.eql(null);",
+              "    pm.expect(json.role).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9 - Logout via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "logout"
+          ]
+        },
+        "description": "Encerra a sessão JWT usada no CRUD via gateway."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no logout via gateway', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.environment.unset('jwt');"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+

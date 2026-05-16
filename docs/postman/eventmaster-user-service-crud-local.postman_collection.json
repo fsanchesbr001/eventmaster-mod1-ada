@@ -1,0 +1,502 @@
+{
+  "info": {
+    "_postman_id": "a2cf7d7e-b299-4d76-bdd5-b4f3e1c99811",
+    "name": "EventMaster - User Service CRUD Local",
+    "description": "Collection para validar o CRUD de usuarios do user-service local, incluindo login administrativo, listagem de roles, cadastro, consulta, atualizacao, listagem, exclusao e logout.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "jwt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "login",
+      "value": "fsanchesbr001@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "senha",
+      "value": "Event@123",
+      "type": "string"
+    },
+    {
+      "key": "crudRunId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "crudUserLogin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "crudUserName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "crudUpdatedName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "crudUserRole",
+      "value": "USER",
+      "type": "string"
+    },
+    {
+      "key": "crudUpdatedRole",
+      "value": "SYSTEM",
+      "type": "string"
+    },
+    {
+      "key": "crudUserCpf",
+      "value": "12345678900",
+      "type": "string"
+    },
+    {
+      "key": "crudUserPassword",
+      "value": "Event@123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Login admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{login}}\",\n  \"senha\": \"{{senha}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Efetua login administrativo e inicializa as variaveis dinamicas do CRUD."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no login admin', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('JWT retornado no login admin', function () {",
+              "    pm.expect(json.jwt).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "const runId = String(Date.now());",
+              "pm.environment.set('jwt', json.jwt);",
+              "pm.environment.set('crudRunId', runId);",
+              "pm.environment.set('crudUserLogin', `crud.user.${runId}@eventmaster.com`);",
+              "pm.environment.set('crudUserName', `Crud User ${runId}`);",
+              "pm.environment.set('crudUpdatedName', `Crud User Atualizado ${runId}`);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Listar roles",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user-service/usuarios/roles",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user-service",
+            "usuarios",
+            "roles"
+          ]
+        },
+        "description": "Consulta as roles disponiveis para confirmar autenticacao e payload do endpoint protegido."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao listar roles', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Payload contem lista de roles', function () {",
+              "    pm.expect(json.roles).to.be.an('array');",
+              "    pm.expect(json.roles.length).to.be.greaterThan(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Registrar usuario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{crudUserLogin}}\",\n  \"senha\": \"{{crudUserPassword}}\",\n  \"role\": \"{{crudUserRole}}\",\n  \"nome\": \"{{crudUserName}}\",\n  \"cpf\": \"{{crudUserCpf}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user-service/usuarios/registrar-usuario",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user-service",
+            "usuarios",
+            "registrar-usuario"
+          ]
+        },
+        "description": "Cadastra um usuario de teste usando valores dinamicos para evitar conflito entre execucoes."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao registrar usuario', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Buscar usuario criado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user-service/usuarios/buscar-usuario/{{crudUserLogin}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user-service",
+            "usuarios",
+            "buscar-usuario",
+            "{{crudUserLogin}}"
+          ]
+        },
+        "description": "Busca o usuario recem-criado pelo login/email."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao buscar usuario criado', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Usuario criado retornado corretamente', function () {",
+              "    pm.expect(json.login).to.eql(pm.environment.get('crudUserLogin'));",
+              "    pm.expect(json.nome).to.eql(pm.environment.get('crudUserName'));",
+              "    pm.expect(json.role).to.eql(pm.environment.get('crudUserRole'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Atualizar usuario",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"{{crudUpdatedName}}\",\n  \"role\": \"{{crudUpdatedRole}}\",\n  \"login\": \"{{crudUserLogin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user-service/usuarios/atualizar-usuario/{{crudUserLogin}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user-service",
+            "usuarios",
+            "atualizar-usuario",
+            "{{crudUserLogin}}"
+          ]
+        },
+        "description": "Atualiza nome e role do usuario criado no fluxo."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao atualizar usuario', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Usuario atualizado retornado corretamente', function () {",
+              "    pm.expect(json.login).to.eql(pm.environment.get('crudUserLogin'));",
+              "    pm.expect(json.nome).to.eql(pm.environment.get('crudUpdatedName'));",
+              "    pm.expect(json.role).to.eql(pm.environment.get('crudUpdatedRole'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - Listar todos os usuarios",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user-service/usuarios/listar-todos-usuarios",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user-service",
+            "usuarios",
+            "listar-todos-usuarios"
+          ]
+        },
+        "description": "Executa o endpoint de listagem geral e valida apenas o contrato atual do payload."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao listar usuarios', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Payload de listagem e um array', function () {",
+              "    pm.expect(json).to.be.an('array');",
+              "    pm.expect(json.length).to.be.greaterThan(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 - Excluir usuario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"{{crudUpdatedName}}\",\n  \"role\": \"{{crudUpdatedRole}}\",\n  \"login\": \"{{crudUserLogin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user-service/usuarios/excluir-usuario",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user-service",
+            "usuarios",
+            "excluir-usuario"
+          ]
+        },
+        "description": "Remove o usuario criado durante o fluxo."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao excluir usuario', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8 - Buscar usuario excluido",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user-service/usuarios/buscar-usuario/{{crudUserLogin}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user-service",
+            "usuarios",
+            "buscar-usuario",
+            "{{crudUserLogin}}"
+          ]
+        },
+        "description": "Valida o comportamento atual do endpoint apos a exclusao: resposta 200 com campos nulos quando o usuario nao existe."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao buscar usuario excluido (comportamento atual)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Usuario excluido retorna payload nulo no comportamento atual', function () {",
+              "    pm.expect(json.login).to.eql(null);",
+              "    pm.expect(json.nome).to.eql(null);",
+              "    pm.expect(json.role).to.eql(null);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9 - Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "logout"
+          ]
+        },
+        "description": "Encerra a sessao autenticada usada no CRUD."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no logout', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.environment.unset('jwt');"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+

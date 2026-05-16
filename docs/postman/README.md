@@ -14,6 +14,10 @@ Observação: o `payment-service` permanece interno, sem API HTTP exposta e sem 
 
 - `eventmaster-user-service-local.postman_collection.json`
 - `eventmaster-user-service-local.postman_environment.json`
+- `eventmaster-user-service-crud-local.postman_collection.json`
+- `eventmaster-user-service-crud-local.postman_environment.json`
+- `eventmaster-user-service-crud-via-gateway.postman_collection.json`
+- `eventmaster-user-service-crud-via-gateway.postman_environment.json`
 - `eventmaster-event-service-local.postman_collection.json`
 - `eventmaster-event-service-local.postman_environment.json`
 - `eventmaster-event-service-via-gateway.postman_collection.json`
@@ -90,6 +94,172 @@ Execute os requests na ordem:
 ## Observação
 
 Se futuramente o acesso passar pelo API Gateway, normalmente basta alterar a variável `baseUrl` no environment para a URL do gateway.
+
+## Collection do user-service CRUD local
+
+A collection `eventmaster-user-service-crud-local.postman_collection.json` cobre o CRUD administrativo de usuários no `user-service` local, reutilizando o fluxo de autenticação JWT no início e encerrando a sessão ao final.
+
+Ela executa os seguintes requests em sequência:
+
+1. `1 - Login admin`
+2. `2 - Listar roles`
+3. `3 - Registrar usuario`
+4. `4 - Buscar usuario criado`
+5. `5 - Atualizar usuario`
+6. `6 - Listar todos os usuarios`
+7. `7 - Excluir usuario`
+8. `8 - Buscar usuario excluido`
+9. `9 - Logout`
+
+### Variáveis do environment do user-service CRUD local
+
+- `baseUrl`: URL base do `user-service`
+- `jwt`: token JWT obtido no login administrativo
+- `login`: usuário administrador usado no login
+- `senha`: senha do usuário administrador
+- `crudRunId`: identificador único da execução atual
+- `crudUserLogin`: login do usuário de teste criado dinamicamente
+- `crudUserName`: nome inicial do usuário criado
+- `crudUpdatedName`: nome esperado após a atualização
+- `crudUserRole`: role inicial usada no cadastro
+- `crudUpdatedRole`: role usada na atualização
+- `crudUserCpf`: CPF enviado no cadastro
+- `crudUserPassword`: campo de senha enviado no payload de cadastro
+
+Valores padrão atuais:
+
+- `baseUrl = http://localhost:8080`
+- `login = fsanchesbr001@gmail.com`
+
+### Como executar o fluxo CRUD do user-service
+
+1. Importe a collection `eventmaster-user-service-crud-local.postman_collection.json`
+2. Importe o environment `eventmaster-user-service-crud-local.postman_environment.json`
+3. Selecione o environment **EventMaster - User Service CRUD Local**
+4. Garanta que o `user-service` esteja rodando em `localhost:8080`
+5. Execute os requests na ordem definida na collection
+
+### Comportamento esperado no user-service CRUD local
+
+#### 1 - Login admin
+- status `200`
+- salva o token em `jwt`
+- inicializa variáveis dinâmicas para evitar conflito entre execuções
+
+#### 2 - Listar roles
+- status `200`
+- retorna a lista de perfis disponíveis
+
+#### 3 - Registrar usuario
+- status `200`
+- cria um usuário dinâmico com login único por execução
+
+#### 4 - Buscar usuario criado
+- status `200`
+- retorna o usuário recém-criado com `login`, `nome` e `role` esperados
+
+#### 5 - Atualizar usuario
+- status `200`
+- retorna o usuário com `nome` e `role` atualizados
+
+#### 6 - Listar todos os usuarios
+- status `200`
+- valida o contrato atual do endpoint como uma lista JSON não vazia
+
+#### 7 - Excluir usuario
+- status `200`
+- remove o usuário criado na execução
+
+#### 8 - Buscar usuario excluido
+- status `200`
+- valida o comportamento atual da API, que retorna payload com campos `null` após a exclusão
+
+#### 9 - Logout
+- status `200`
+- limpa a variável `jwt`
+
+## Collection do user-service CRUD via gateway
+
+A collection `eventmaster-user-service-crud-via-gateway.postman_collection.json` cobre o mesmo CRUD administrativo de usuários, mas trafegando pelo `gateway-service` e usando as rotas públicas `/api/auth/**` e `/api/users/**`.
+
+Ela executa os seguintes requests em sequência:
+
+1. `1 - Login via Gateway`
+2. `2 - Listar roles via Gateway`
+3. `3 - Registrar usuario via Gateway`
+4. `4 - Buscar usuario criado via Gateway`
+5. `5 - Atualizar usuario via Gateway`
+6. `6 - Listar todos os usuarios via Gateway`
+7. `7 - Excluir usuario via Gateway`
+8. `8 - Buscar usuario excluido via Gateway`
+9. `9 - Logout via Gateway`
+
+### Variáveis do environment do user-service CRUD via gateway
+
+- `baseUrl`: URL base do `gateway-service`
+- `jwt`: token JWT obtido no login administrativo via gateway
+- `login`: usuário administrador usado no login
+- `senha`: senha do usuário administrador
+- `crudRunId`: identificador único da execução atual
+- `crudUserLogin`: login do usuário de teste criado dinamicamente
+- `crudUserName`: nome inicial do usuário criado
+- `crudUpdatedName`: nome esperado após a atualização
+- `crudUserRole`: role inicial usada no cadastro
+- `crudUpdatedRole`: role usada na atualização
+- `crudUserCpf`: CPF enviado no cadastro
+- `crudUserPassword`: campo de senha enviado no payload de cadastro
+
+Valores padrão atuais:
+
+- `baseUrl = http://localhost:8081`
+- `login = fsanchesbr001@gmail.com`
+
+### Como executar o fluxo CRUD do user-service via gateway
+
+1. Importe a collection `eventmaster-user-service-crud-via-gateway.postman_collection.json`
+2. Importe o environment `eventmaster-user-service-crud-via-gateway.postman_environment.json`
+3. Selecione o environment **EventMaster - User Service CRUD via Gateway**
+4. Garanta que `gateway-service` e `user-service` estejam rodando
+5. Execute os requests na ordem definida na collection
+
+### Comportamento esperado no user-service CRUD via gateway
+
+#### 1 - Login via Gateway
+- status `200`
+- salva o token em `jwt`
+- inicializa variáveis dinâmicas para evitar conflito entre execuções
+
+#### 2 - Listar roles via Gateway
+- status `200`
+- retorna a lista de perfis disponíveis
+
+#### 3 - Registrar usuario via Gateway
+- status `200`
+- cria um usuário dinâmico com login único por execução
+
+#### 4 - Buscar usuario criado via Gateway
+- status `200`
+- retorna o usuário recém-criado com `login`, `nome` e `role` esperados
+
+#### 5 - Atualizar usuario via Gateway
+- status `200`
+- retorna o usuário com `nome` e `role` atualizados
+
+#### 6 - Listar todos os usuarios via Gateway
+- status `200`
+- valida o contrato atual do endpoint como uma lista JSON não vazia
+
+#### 7 - Excluir usuario via Gateway
+- status `200`
+- remove o usuário criado na execução
+
+#### 8 - Buscar usuario excluido via Gateway
+- status `200`
+- valida o comportamento atual da API, que retorna payload com campos `null` após a exclusão
+
+#### 9 - Logout via Gateway
+- status `200`
+- limpa a variável `jwt`
 
 ## Collection do event-service
 
