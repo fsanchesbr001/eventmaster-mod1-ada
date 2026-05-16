@@ -12,7 +12,7 @@
 
     <groupId>com.fabriciosanches</groupId>
     <artifactId>eventmaster-mod1-ada</artifactId>
-    <version>0.0.2</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
 
     <name>eventmaster-mod1-ada</name>
@@ -23,6 +23,7 @@
         <module>services/event-service</module>
         <module>services/ticket-service</module>
         <module>services/order-service</module>
+        <module>services/payment-service</module>
         <module>services/gateway-service</module>
     </modules>
 

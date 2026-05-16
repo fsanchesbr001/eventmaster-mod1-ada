@@ -1,5 +1,7 @@
 package com.fabriciosanches.ticketservice.service;
 
+import com.fabriciosanches.shared.events.PedidoCanceladoEvent;
+import com.fabriciosanches.shared.events.PedidoConfirmadoEvent;
 import com.fabriciosanches.shared.events.PedidoRealizadoEvent;
 import com.fabriciosanches.shared.events.PedidoRealizadoItemEvent;
 import com.fabriciosanches.ticketservice.domain.Ticket;
@@ -27,6 +29,8 @@ public class TicketService {
     private static final Logger logger = LoggerFactory.getLogger(TicketService.class);
     private static final Set<String> TIPOS_INGRESSO_VALIDOS = Set.of("Meia", "Inteira");
     private static final String SITUACAO_PADRAO = "Disponivel";
+    private static final String SITUACAO_RESERVADO = "Reservado";
+    private static final String SITUACAO_CONFIRMADO = "Confirmado";
 
     private final TicketRepository ticketRepository;
     private final EventInventoryService eventInventoryService;
@@ -116,30 +120,67 @@ public class TicketService {
             return;
         }
 
-        long proximoIdIngresso = ticketRepository.findTopByOrderByIdIngressoDesc()
-                .map(ticket -> ticket.getIdIngresso() + 1)
-                .orElse(1L);
+        materializarIngressosDoPedido(
+                event.pedidoId(),
+                event.eventoNome(),
+                event.dataEvento(),
+                event.horaEvento(),
+                event.itens(),
+                SITUACAO_RESERVADO
+        );
+    }
 
-        for (PedidoRealizadoItemEvent item : event.itens()) {
-            String tipoIngressoNormalizado = normalizarTipoIngresso(item.tipoIngresso());
-            if (!TIPOS_INGRESSO_VALIDOS.contains(tipoIngressoNormalizado)) {
-                throw new TicketValidationException("Tipo do ingresso do pedido realizado deve ser Meia ou Inteira");
-            }
+    @Transactional
+    public void confirmarPedido(PedidoConfirmadoEvent event) {
+        validarEventoFinal(event.pedidoId(), event.eventoId(), event.eventoNome(), event.dataEvento(), event.horaEvento(), event.valorTotal(), event.itens(), "confirmado");
 
-            Ticket ticket = new Ticket(
-                    proximoIdIngresso++,
-                    event.eventoNome().trim(),
-                    event.dataEvento(),
-                    event.horaEvento(),
-                    tipoIngressoNormalizado,
-                    item.precoPago().setScale(2, RoundingMode.HALF_UP),
-                    item.nomePortador().trim(),
-                    item.cpfPortador().trim(),
-                    "Reservado"
-            );
-            ticket.setPedidoId(event.pedidoId());
-            ticketRepository.save(ticket);
+        List<Ticket> tickets = ticketRepository.findByPedidoId(event.pedidoId());
+        if (tickets.isEmpty()) {
+            logger.warn("Pedido confirmado id={} chegou antes da materialização do pedido realizado. Criando ingressos já confirmados.", event.pedidoId());
+            materializarIngressosDoPedido(event.pedidoId(), event.eventoNome(), event.dataEvento(), event.horaEvento(), event.itens(), SITUACAO_CONFIRMADO);
+            return;
         }
+        if (tickets.stream().allMatch(ticket -> SITUACAO_CONFIRMADO.equals(ticket.getSituacao()))) {
+            logger.info("Ingressos do pedido id={} já estão confirmados. Ignorando reprocessamento.", event.pedidoId());
+            return;
+        }
+        if (tickets.stream().anyMatch(ticket -> SITUACAO_PADRAO.equals(ticket.getSituacao()))) {
+            logger.warn("Ingressos do pedido id={} já estão disponíveis após cancelamento. Evento de confirmação será ignorado.", event.pedidoId());
+            return;
+        }
+
+        tickets.forEach(ticket -> ticket.setSituacao(SITUACAO_CONFIRMADO));
+        ticketRepository.saveAll(tickets);
+    }
+
+    @Transactional
+    public void cancelarPedido(PedidoCanceladoEvent event) {
+        validarEventoFinal(event.pedidoId(), event.eventoId(), event.eventoNome(), event.dataEvento(), event.horaEvento(), event.valorTotal(), event.itens(), "cancelado");
+
+        List<Ticket> tickets = ticketRepository.findByPedidoId(event.pedidoId());
+        if (tickets.isEmpty()) {
+            logger.warn("Pedido cancelado id={} chegou antes da materialização do pedido realizado. Criando ingressos disponíveis e estornando estoque.", event.pedidoId());
+            eventInventoryService.devolverIngressos(event.eventoId(), event.itens().size());
+            materializarIngressosDoPedido(event.pedidoId(), event.eventoNome(), event.dataEvento(), event.horaEvento(), event.itens(), SITUACAO_PADRAO);
+            return;
+        }
+        if (tickets.stream().allMatch(ticket -> SITUACAO_PADRAO.equals(ticket.getSituacao()))) {
+            logger.info("Ingressos do pedido id={} já estão disponíveis. Ignorando reprocessamento do cancelamento.", event.pedidoId());
+            return;
+        }
+        if (tickets.stream().anyMatch(ticket -> SITUACAO_CONFIRMADO.equals(ticket.getSituacao()))) {
+            logger.warn("Ingressos do pedido id={} já foram confirmados. Evento de cancelamento será ignorado.", event.pedidoId());
+            return;
+        }
+
+        long quantidadeParaDevolver = tickets.stream()
+                .filter(ticket -> !SITUACAO_PADRAO.equals(ticket.getSituacao()))
+                .count();
+        if (quantidadeParaDevolver > 0) {
+            eventInventoryService.devolverIngressos(event.eventoId(), Math.toIntExact(quantidadeParaDevolver));
+        }
+        tickets.forEach(ticket -> ticket.setSituacao(SITUACAO_PADRAO));
+        ticketRepository.saveAll(tickets);
     }
 
     private Ticket obterEntidade(Long id) {
@@ -185,6 +226,86 @@ public class TicketService {
             if (item.precoPago() == null || item.precoPago().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new TicketValidationException("Preço pago do item do pedido realizado deve ser maior que zero");
             }
+        }
+    }
+
+    private void validarEventoFinal(Long pedidoId,
+                                    Long eventoId,
+                                    String eventoNome,
+                                    java.time.LocalDate dataEvento,
+                                    java.time.LocalTime horaEvento,
+                                    BigDecimal valorTotal,
+                                    List<PedidoRealizadoItemEvent> itens,
+                                    String tipoEvento) {
+        if (pedidoId == null || pedidoId <= 0) {
+            throw new TicketValidationException("Evento de pedido " + tipoEvento + " precisa informar um pedido válido");
+        }
+        if (eventoId == null || eventoId <= 0) {
+            throw new TicketValidationException("Evento de pedido " + tipoEvento + " precisa informar um evento válido");
+        }
+        if (eventoNome == null || eventoNome.isBlank()) {
+            throw new TicketValidationException("Evento de pedido " + tipoEvento + " precisa informar o nome do evento");
+        }
+        if (dataEvento == null) {
+            throw new TicketValidationException("Evento de pedido " + tipoEvento + " precisa informar a data do evento");
+        }
+        if (horaEvento == null) {
+            throw new TicketValidationException("Evento de pedido " + tipoEvento + " precisa informar a hora do evento");
+        }
+        if (valorTotal == null || valorTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new TicketValidationException("Evento de pedido " + tipoEvento + " precisa informar o valor total do pedido");
+        }
+        if (itens == null || itens.isEmpty()) {
+            throw new TicketValidationException("Evento de pedido " + tipoEvento + " precisa informar ao menos um item");
+        }
+        for (PedidoRealizadoItemEvent item : itens) {
+            if (item == null) {
+                throw new TicketValidationException("Itens do pedido " + tipoEvento + " devem ser válidos");
+            }
+            if (item.nomePortador() == null || item.nomePortador().isBlank()) {
+                throw new TicketValidationException("Nome do portador do pedido " + tipoEvento + " é obrigatório");
+            }
+            if (item.cpfPortador() == null || item.cpfPortador().isBlank()) {
+                throw new TicketValidationException("CPF do portador do pedido " + tipoEvento + " é obrigatório");
+            }
+            if (item.tipoIngresso() == null || item.tipoIngresso().isBlank()) {
+                throw new TicketValidationException("Tipo do ingresso do pedido " + tipoEvento + " é obrigatório");
+            }
+            if (item.precoPago() == null || item.precoPago().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new TicketValidationException("Preço pago do item do pedido " + tipoEvento + " deve ser maior que zero");
+            }
+        }
+    }
+
+    private void materializarIngressosDoPedido(Long pedidoId,
+                                               String eventoNome,
+                                               java.time.LocalDate dataEvento,
+                                               java.time.LocalTime horaEvento,
+                                               List<PedidoRealizadoItemEvent> itens,
+                                               String situacao) {
+        long proximoIdIngresso = ticketRepository.findTopByOrderByIdIngressoDesc()
+                .map(ticket -> ticket.getIdIngresso() + 1)
+                .orElse(1L);
+
+        for (PedidoRealizadoItemEvent item : itens) {
+            String tipoIngressoNormalizado = normalizarTipoIngresso(item.tipoIngresso());
+            if (!TIPOS_INGRESSO_VALIDOS.contains(tipoIngressoNormalizado)) {
+                throw new TicketValidationException("Tipo do ingresso do pedido realizado deve ser Meia ou Inteira");
+            }
+
+            Ticket ticket = new Ticket(
+                    proximoIdIngresso++,
+                    eventoNome.trim(),
+                    dataEvento,
+                    horaEvento,
+                    tipoIngressoNormalizado,
+                    item.precoPago().setScale(2, RoundingMode.HALF_UP),
+                    item.nomePortador().trim(),
+                    item.cpfPortador().trim(),
+                    situacao
+            );
+            ticket.setPedidoId(pedidoId);
+            ticketRepository.save(ticket);
         }
     }
 

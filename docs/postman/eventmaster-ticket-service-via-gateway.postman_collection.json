@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "db3ec6c6-d441-4d16-bbce-3a887f25ddad",
-    "name": "EventMaster - Ticket Service CRUD via Gateway",
-    "description": "Collection para autenticar via user-service e testar o CRUD completo do ticket-service através do API Gateway.",
+    "_postman_id": "a36dc15d-89f3-4698-9c62-79472fdca0e0",
+    "name": "EventMaster - Ticket Service via Gateway",
+    "description": "Alias explícito da collection de CRUD do ticket-service via API Gateway.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [

@@ -49,6 +49,11 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>2.6.0</version>
+        </dependency>
         <!-- Recomendado para monitoramento e métricas -->
         <dependency>
                 <groupId>org.springframework.boot</groupId>

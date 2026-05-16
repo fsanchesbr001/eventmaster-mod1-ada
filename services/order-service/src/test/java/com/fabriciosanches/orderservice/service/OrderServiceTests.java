@@ -1,6 +1,11 @@
 package com.fabriciosanches.orderservice.service;
 
 import com.fabriciosanches.shared.events.PedidoRealizadoEvent;
+import com.fabriciosanches.shared.events.PagamentoConfirmadoEvent;
+import com.fabriciosanches.shared.events.PagamentoNegadoEvent;
+import com.fabriciosanches.shared.events.PedidoCanceladoEvent;
+import com.fabriciosanches.shared.events.PedidoConfirmadoEvent;
+import com.fabriciosanches.shared.events.PedidoRealizadoItemEvent;
 import com.fabriciosanches.orderservice.domain.Order;
 import com.fabriciosanches.orderservice.dtos.EventResponseDTO;
 import com.fabriciosanches.orderservice.dtos.OrderItemRequestDTO;
@@ -41,7 +46,7 @@ class OrderServiceTests {
     private OrderRepository orderRepository;
 
     @Mock
-    private KafkaTemplate<String, PedidoRealizadoEvent> kafkaTemplate;
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Mock
     private RestTemplate restTemplate;
@@ -57,6 +62,8 @@ class OrderServiceTests {
                 "http://localhost:8082/event-service/eventos",
                 "http://localhost:8083/ticket-service/ingressos",
                 "PEDIDO_REALIZADO",
+                "PEDIDO_CONFIRMADO",
+                "PEDIDO_CANCELADO",
                 true
         );
     }
@@ -142,6 +149,98 @@ class OrderServiceTests {
         verify(kafkaTemplate, never()).send(any(), any(), any());
     }
 
+    @Test
+    void shouldConfirmOrderAndPublishPedidoConfirmadoWhenPaymentIsApproved() {
+        Order order = criarPedidoPersistido(1L, "usuario-1", 10L, "150.00", "REALIZADO");
+        PagamentoConfirmadoEvent event = criarPagamentoConfirmadoEvent(1L, 10L, "150.00");
+
+        when(orderRepository.findById(1L)).thenReturn(java.util.Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        orderService.processarPagamentoConfirmado(event);
+
+        assertEquals("CONFIRMADO", order.getStatus().name());
+        verify(orderRepository).save(order);
+        verify(kafkaTemplate).send(eq("PEDIDO_CONFIRMADO"), eq("1"), argThat(matchesPedidoConfirmado()));
+    }
+
+    @Test
+    void shouldCancelOrderAndPublishPedidoCanceladoWhenPaymentIsDenied() {
+        Order order = criarPedidoPersistido(9L, "usuario-1", 10L, "150.00", "REALIZADO");
+        PagamentoNegadoEvent event = criarPagamentoNegadoEvent(9L, 10L, "150.00");
+
+        when(orderRepository.findById(9L)).thenReturn(java.util.Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        orderService.processarPagamentoNegado(event);
+
+        assertEquals("CANCELADO", order.getStatus().name());
+        verify(orderRepository).save(order);
+        verify(kafkaTemplate).send(eq("PEDIDO_CANCELADO"), eq("9"), argThat(matchesPedidoCancelado()));
+    }
+
+    @Test
+    void shouldIgnorePagamentoNegadoWhenOrderAlreadyConfirmed() {
+        Order order = criarPedidoPersistido(1L, "usuario-1", 10L, "150.00", "CONFIRMADO");
+
+        when(orderRepository.findById(1L)).thenReturn(java.util.Optional.of(order));
+
+        orderService.processarPagamentoNegado(criarPagamentoNegadoEvent(1L, 10L, "150.00"));
+
+        assertEquals("CONFIRMADO", order.getStatus().name());
+        verify(orderRepository, never()).save(any(Order.class));
+        verify(kafkaTemplate, never()).send(eq("PEDIDO_CANCELADO"), any(), any());
+    }
+
+    @Test
+    void shouldIgnorePagamentoConfirmadoWhenOrderAlreadyCancelled() {
+        Order order = criarPedidoPersistido(1L, "usuario-1", 10L, "150.00", "CANCELADO");
+
+        when(orderRepository.findById(1L)).thenReturn(java.util.Optional.of(order));
+
+        orderService.processarPagamentoConfirmado(criarPagamentoConfirmadoEvent(1L, 10L, "150.00"));
+
+        assertEquals("CANCELADO", order.getStatus().name());
+        verify(orderRepository, never()).save(any(Order.class));
+        verify(kafkaTemplate, never()).send(eq("PEDIDO_CONFIRMADO"), any(), any());
+    }
+
+    private Order criarPedidoPersistido(Long pedidoId, String usuarioId, Long eventoId, String valorTotal, String status) {
+        Order order = new Order();
+        order.setId(pedidoId);
+        order.setUsuarioId(usuarioId);
+        order.setEventoId(eventoId);
+        order.setValorTotal(new BigDecimal(valorTotal));
+        order.setStatus(com.fabriciosanches.orderservice.enums.StatusPedido.valueOf(status));
+        return order;
+    }
+
+    private PagamentoConfirmadoEvent criarPagamentoConfirmadoEvent(Long pedidoId, Long eventoId, String valorTotal) {
+        return new PagamentoConfirmadoEvent(
+                pedidoId,
+                "usuario-1",
+                eventoId,
+                "Show da ADA",
+                LocalDate.of(2026, 12, 10),
+                LocalTime.of(20, 0),
+                new BigDecimal(valorTotal),
+                List.of(new PedidoRealizadoItemEvent("Fabricio Sanches", "123.456.789-00", "INTEIRA", new BigDecimal("100.00")))
+        );
+    }
+
+    private PagamentoNegadoEvent criarPagamentoNegadoEvent(Long pedidoId, Long eventoId, String valorTotal) {
+        return new PagamentoNegadoEvent(
+                pedidoId,
+                "usuario-1",
+                eventoId,
+                "Show da ADA",
+                LocalDate.of(2026, 12, 10),
+                LocalTime.of(20, 0),
+                new BigDecimal(valorTotal),
+                List.of(new PedidoRealizadoItemEvent("Fabricio Sanches", "123.456.789-00", "INTEIRA", new BigDecimal("100.00")))
+        );
+    }
+
     private ArgumentMatcher<Order> matchesOrder() {
         return order -> order != null
                 && "usuario-1".equals(order.getUsuarioId())
@@ -167,6 +266,28 @@ class OrderServiceTests {
                 && "Ada Lovelace".equals(event.itens().get(1).nomePortador())
                 && "MEIA".equals(event.itens().get(1).tipoIngresso())
                 && new BigDecimal("50.00").compareTo(event.itens().get(1).precoPago()) == 0;
+    }
+
+    private ArgumentMatcher<PedidoConfirmadoEvent> matchesPedidoConfirmado() {
+        return event -> event != null
+                && Long.valueOf(1L).equals(event.pedidoId())
+                && "usuario-1".equals(event.usuarioId())
+                && Long.valueOf(10L).equals(event.eventoId())
+                && "Show da ADA".equals(event.eventoNome())
+                && new BigDecimal("150.00").compareTo(event.valorTotal()) == 0
+                && event.itens() != null
+                && event.itens().size() == 1;
+    }
+
+    private ArgumentMatcher<PedidoCanceladoEvent> matchesPedidoCancelado() {
+        return event -> event != null
+                && Long.valueOf(9L).equals(event.pedidoId())
+                && "usuario-1".equals(event.usuarioId())
+                && Long.valueOf(10L).equals(event.eventoId())
+                && "Show da ADA".equals(event.eventoNome())
+                && new BigDecimal("150.00").compareTo(event.valorTotal()) == 0
+                && event.itens() != null
+                && event.itens().size() == 1;
     }
 }
 

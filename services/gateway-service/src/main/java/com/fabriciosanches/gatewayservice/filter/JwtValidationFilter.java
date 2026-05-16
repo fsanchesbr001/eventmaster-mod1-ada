@@ -90,6 +90,8 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
 
     private boolean isPublicRoute(String path) {
         return path.startsWith("/api/auth/login")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
                 || path.startsWith("/api/users/swagger-ui")
                 || path.startsWith("/api/users/v3/api-docs")
                 || path.startsWith("/api/events/swagger-ui")
