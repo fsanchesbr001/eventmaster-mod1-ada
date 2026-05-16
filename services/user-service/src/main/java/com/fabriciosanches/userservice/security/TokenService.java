@@ -30,6 +30,9 @@ public class TokenService {
     @Value("${api.security.token.time-zone:America/Sao_Paulo}")
     private String tokenTimeZone;
 
+    @Value("${api.security.token.issuer:API Event Master}")
+    private String issuer;
+
     private final Logger logger = LogManager.getLogger(TokenService.class);
 
     public String gerarToken(Usuario usuario){
@@ -38,7 +41,7 @@ public class TokenService {
             var algoritimo = Algorithm.HMAC256(secret);
             logger.info("Fim do método gerarToken");
             return JWT.create()
-                    .withIssuer("Micro Servico Usuario")
+                    .withIssuer(issuer)
                     .withSubject(usuario.getLogin())
                     .withClaim("role", usuario.getRole().getRole())
                     .withClaim("nome", usuario.getNome())
@@ -56,7 +59,7 @@ public class TokenService {
             var algoritimo = Algorithm.HMAC256(secret);
             logger.info("Fim do método getSubject");
             return JWT.require(algoritimo)
-                    .withIssuer("Micro Servico Usuario")
+                    .withIssuer(issuer)
                     .build()
                     .verify(tokenJWT)
                     .getSubject();
@@ -71,7 +74,7 @@ public class TokenService {
             var algoritimo = Algorithm.HMAC256(secret);
             logger.info("Fim do método getRole");
             return JWT.require(algoritimo)
-                    .withIssuer("Micro Servico Usuario")
+                    .withIssuer(issuer)
                     .build()
                     .verify(tokenJWT)
                     .getClaim("role").asString();
@@ -99,7 +102,7 @@ public class TokenService {
         try {
             var algoritimo = Algorithm.HMAC256(secret);
             var decoded = JWT.require(algoritimo)
-                    .withIssuer("Micro Servico Usuario")
+                    .withIssuer(issuer)
                     .build()
                     .verify(tokenJWT);
             return decoded.getExpiresAtAsInstant();
@@ -114,7 +117,7 @@ public class TokenService {
             logger.info("Validando expiração do token");
             var algoritimo = Algorithm.HMAC256(secret);
             JWT.require(algoritimo)
-                    .withIssuer("Micro Servico Usuario")
+                    .withIssuer(issuer)
                     .build()
                     .verify(tokenJWT);
             logger.info("Token válido e não expirado");
