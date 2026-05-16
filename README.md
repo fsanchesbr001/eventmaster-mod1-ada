@@ -1,7 +1,3 @@
-Aqui está o seu texto exatamente como solicitado, totalmente convertido e formatado em **Markdown**, com blocos de código corrigidos, realces visuais e uma estrutura limpa e profissional:
-
----
-
 # Sequência de Inicialização da Plataforma — EventMaster
 
 Para que o ecossistema distribuído do **EventMaster** suba redondo — sem que nenhum microsserviço derrube a inicialização do Spring Boot por falta de conexão —, é fundamental seguir uma sequência lógica de dependências.
@@ -128,7 +124,7 @@ Por último, subimos o componente reativo que unifica o acesso a todo o sistema:
 
 ---
 
-### 💡 Dica de Ouro para o Dia da Apresentação
+### 💡 Dica de Ouro:
 
 Se você quiser automatizar essa subida para o seu grupo da ADA ou para rodar tudo de forma limpa, pode criar um arquivo de script simples na raiz do monorepo chamado `subir-plataforma.bat` (Windows):
 
