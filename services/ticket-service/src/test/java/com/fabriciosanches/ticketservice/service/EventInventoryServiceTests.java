@@ -52,5 +52,15 @@ class EventInventoryServiceTests {
 
         assertThrows(TicketInventoryException.class, () -> eventInventoryService.reservarIngressos(1L, 2));
     }
+
+    @Test
+    void shouldReturnTicketsToRedisWhenOrderIsCancelled() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment("evento:1:ingressos_disponiveis", 2)).thenReturn(97L);
+
+        eventInventoryService.devolverIngressos(1L, 2);
+
+        verify(valueOperations).increment("evento:1:ingressos_disponiveis", 2);
+    }
 }
 

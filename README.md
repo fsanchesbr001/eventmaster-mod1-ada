@@ -14,6 +14,7 @@ eventmaster-mod1-ada/
     event-service/        # modulo Maven do servico de eventos
     ticket-service/       # modulo Maven do servico de ingressos
     order-service/        # modulo Maven do servico de pedidos
+    payment-service/      # modulo Maven do servico interno de pagamentos
     gateway-service/      # API Gateway (Spring Cloud Gateway)
 ```
 
@@ -38,6 +39,12 @@ Execute os comandos a partir da raiz do repositorio (`eventmaster-mod1-ada`).
 
 ```powershell
 .\mvnw.cmd -pl services/user-service test
+```
+
+### 2.1) Testar apenas o `payment-service`
+
+```powershell
+.\mvnw.cmd -pl services/payment-service test
 ```
 
 ### 3) Rodar apenas o `user-service`
@@ -67,6 +74,14 @@ Com o `order-service` em execucao, acesse:
 
 - Swagger UI: `http://localhost:8084/swagger-ui/index.html`
 - OpenAPI JSON: `http://localhost:8084/v3/api-docs`
+
+Com o `gateway-service` em execucao:
+
+- Swagger UI propria: `http://localhost:8081/swagger-ui.html`
+- OpenAPI JSON proprio: `http://localhost:8081/v3/api-docs`
+- a Swagger UI do gateway tambem agrega links para as documentacoes downstream publicadas em `/api/users/**`, `/api/events/**`, `/api/tickets/**` e `/api/orders/**`
+
+Observacao: o `payment-service` nao expoe API HTTP publica e, por isso, nao possui rota no `gateway-service`. Ele atua apenas como consumidor/publicador interno via Kafka.
 
 ### Autenticacao no Swagger
 
@@ -120,13 +135,13 @@ As respostas de erro dos endpoints documentados seguem o formato:
 
 Os arquivos de apoio para testes manuais do `user-service` estao em `docs/postman/`:
 
-- Collection: `docs/postman/eventmaster-user-service-auth.postman_collection.json`
+- Collection: `docs/postman/eventmaster-user-service-local.postman_collection.json`
 - Environment: `docs/postman/eventmaster-user-service-local.postman_environment.json`
 - Guia rapido: `docs/postman/README.md`
 
 Os arquivos de apoio para testes manuais do `event-service` tambem estao em `docs/postman/`:
 
-- Collection: `docs/postman/eventmaster-event-service-crud.postman_collection.json`
+- Collection: `docs/postman/eventmaster-event-service-local.postman_collection.json`
 - Environment: `docs/postman/eventmaster-event-service-local.postman_environment.json`
 - Collection via gateway: `docs/postman/eventmaster-event-service-via-gateway.postman_collection.json`
 - Environment via gateway: `docs/postman/eventmaster-event-service-via-gateway.postman_environment.json`
@@ -137,8 +152,34 @@ Observacao: tambem foi adicionada uma collection equivalente via `gateway-servic
 
 Os arquivos de apoio para testes manuais do `ticket-service` via gateway tambem estao em `docs/postman/`:
 
-- Collection: `docs/postman/eventmaster-ticket-service-crud.postman_collection.json`
-- Environment: `docs/postman/eventmaster-ticket-service-local.postman_environment.json`
+- Collection: `docs/postman/eventmaster-ticket-service-via-gateway.postman_collection.json`
+- Environment: `docs/postman/eventmaster-ticket-service-via-gateway.postman_environment.json`
+- Guia rapido: `docs/postman/README.md`
+
+Observacao: a nomenclatura dos arquivos Postman foi padronizada para usar `-local` quando o acesso e direto ao servico e `-via-gateway` quando o acesso atravessa o `gateway-service`.
+
+Os arquivos de apoio para testes manuais do `order-service` via gateway tambem estao em `docs/postman/`:
+
+- Collection: `docs/postman/eventmaster-order-service-via-gateway.postman_collection.json`
+- Environment: `docs/postman/eventmaster-order-service-via-gateway.postman_environment.json`
+- Guia rapido: `docs/postman/README.md`
+
+Os arquivos de apoio para validacao manual do `gateway-service` tambem estao em `docs/postman/`:
+
+- Collection: `docs/postman/eventmaster-gateway-service-local.postman_collection.json`
+- Environment: `docs/postman/eventmaster-gateway-service-local.postman_environment.json`
+- Guia rapido: `docs/postman/README.md`
+
+Tambem existe uma collection ponta a ponta via gateway para validar o fluxo principal da plataforma:
+
+- Collection: `docs/postman/eventmaster-platform-e2e-via-gateway.postman_collection.json`
+- Environment: `docs/postman/eventmaster-platform-e2e-via-gateway.postman_environment.json`
+- Guia rapido: `docs/postman/README.md`
+
+Tambem existe uma collection ponta a ponta via gateway dedicada ao cenário de pagamento negado:
+
+- Collection: `docs/postman/eventmaster-platform-e2e-payment-denied-via-gateway.postman_collection.json`
+- Environment: `docs/postman/eventmaster-platform-e2e-payment-denied-via-gateway.postman_environment.json`
 - Guia rapido: `docs/postman/README.md`
 
 ### Fluxo coberto na collection
@@ -299,6 +340,10 @@ O `order-service` centraliza a criacao do pedido e executa a orquestracao do flu
 - `DB_PWD` (default: `root`)
 - `KAFKA_BOOTSTRAP_SERVERS` (default: `localhost:9092`)
 - `KAFKA_TOPIC_PEDIDO_REALIZADO` (default: `PEDIDO_REALIZADO`)
+- `KAFKA_TOPIC_PAGAMENTO_CONFIRMADO` (default: `PAGAMENTO_CONFIRMADO`)
+- `KAFKA_TOPIC_PAGAMENTO_NEGADO` (default: `PAGAMENTO_NEGADO`)
+- `KAFKA_TOPIC_PEDIDO_CONFIRMADO` (default: `PEDIDO_CONFIRMADO`)
+- `KAFKA_TOPIC_PEDIDO_CANCELADO` (default: `PEDIDO_CANCELADO`)
 - `ORDER_EVENT_PUBLISHING_ENABLED` (default: `true`)
 - `EVENT_SERVICE_ENDPOINT` (default: `http://localhost:8082/event-service/eventos`)
 - `TICKET_SERVICE_ENDPOINT` (default: `http://localhost:8083/ticket-service/ingressos`)
@@ -324,6 +369,45 @@ O `order-service` centraliza a criacao do pedido e executa a orquestracao do flu
 }
 ```
 
+## Fluxo assíncrono de pagamento e finalizacao do pedido
+
+O fluxo ponta a ponta de compra fica distribuido entre `order-service`, `payment-service` e `ticket-service` da seguinte forma:
+
+1. o `order-service` cria o pedido com status `REALIZADO`
+2. o `order-service` publica `PEDIDO_REALIZADO`
+3. o `ticket-service` materializa os ingressos do pedido com situacao `Reservado`
+4. o `payment-service` consome `PEDIDO_REALIZADO`
+5. o `payment-service` aplica a regra simulada de pagamento:
+   - pedidos cujo `pedidoId` termina em `6` ou `9` publicam `PAGAMENTO_NEGADO`
+   - todos os demais publicam `PAGAMENTO_CONFIRMADO`
+6. o `order-service` consome o resultado do pagamento:
+   - `PAGAMENTO_CONFIRMADO` -> pedido vai para `CONFIRMADO` e o servico publica `PEDIDO_CONFIRMADO`
+   - `PAGAMENTO_NEGADO` -> pedido vai para `CANCELADO` e o servico publica `PEDIDO_CANCELADO`
+7. o `ticket-service` consome o evento final:
+   - `PEDIDO_CONFIRMADO` -> ingressos passam de `Reservado` para `Confirmado`
+   - `PEDIDO_CANCELADO` -> ingressos passam para `Disponivel` e a quantidade e devolvida ao Redis
+
+### Observacoes de resiliencia no `ticket-service`
+
+- O fluxo foi implementado para tolerar entrega fora de ordem entre topicos Kafka.
+- Se `PEDIDO_CONFIRMADO` chegar antes de `PEDIDO_REALIZADO`, o `ticket-service` materializa diretamente os ingressos como `Confirmado`.
+- Se `PEDIDO_CANCELADO` chegar antes de `PEDIDO_REALIZADO`, o `ticket-service` materializa os ingressos como `Disponivel` e estorna a reserva no Redis.
+- Reentregas do mesmo evento sao tratadas de forma idempotente para evitar confirmacoes ou estornos duplicados.
+
+### Variaveis de ambiente uteis do `payment-service`
+
+- `PORT` (default: `8086`)
+- `KAFKA_BOOTSTRAP_SERVERS` (default: `localhost:9092`)
+- `KAFKA_CONSUMER_GROUP` (default: `payment-service-group`)
+- `KAFKA_TOPIC_PEDIDO_REALIZADO` (default: `PEDIDO_REALIZADO`)
+- `KAFKA_TOPIC_PAGAMENTO_CONFIRMADO` (default: `PAGAMENTO_CONFIRMADO`)
+- `KAFKA_TOPIC_PAGAMENTO_NEGADO` (default: `PAGAMENTO_NEGADO`)
+
+### Variaveis de ambiente uteis adicionais do `ticket-service`
+
+- `KAFKA_TOPIC_PEDIDO_CONFIRMADO` (default: `PEDIDO_CONFIRMADO`)
+- `KAFKA_TOPIC_PEDIDO_CANCELADO` (default: `PEDIDO_CANCELADO`)
+
 ## Observabilidade no Gateway
 
 O `gateway-service` possui filtro global de log para todas as requisicoes com:
@@ -339,8 +423,7 @@ Se o cliente nao enviar `X-Correlation-Id`, o gateway gera automaticamente e dev
 ## Sobre o monorepo
 
 - A raiz (`pom.xml`) agrega modulos com `<packaging>pom</packaging>`.
-- Os modulos atualmente registrados sao `services/user-service`, `services/event-service`, `services/ticket-service` e `services/gateway-service`.
-- Os modulos atualmente registrados sao `services/user-service`, `services/event-service`, `services/ticket-service`, `services/order-service` e `services/gateway-service`.
+- Os modulos atualmente registrados sao `services/user-service`, `services/event-service`, `services/ticket-service`, `services/order-service`, `services/payment-service` e `services/gateway-service`.
 - Novos servicos devem ser criados em `services/<nome-do-servico>` e adicionados em `<modules>` no `pom.xml` da raiz.
 
 ## Dicas para IntelliJ

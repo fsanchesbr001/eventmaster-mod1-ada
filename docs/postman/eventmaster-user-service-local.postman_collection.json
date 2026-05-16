@@ -1,8 +1,8 @@
-{
+﻿{
   "info": {
     "_postman_id": "1d0ffbc5-8a69-4e0e-9ad3-f76cce9a9f01",
-    "name": "EventMaster - User Service Auth Flow",
-    "description": "Collection de testes do fluxo de autenticação do user-service: login, chamada protegida, logout e validação pós-logout.",
+    "name": "EventMaster - User Service Local",
+    "description": "Collection de testes do fluxo de autenticaÃ§Ã£o do user-service: login, chamada protegida, logout e validaÃ§Ã£o pÃ³s-logout.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -62,7 +62,7 @@
             "login"
           ]
         },
-        "description": "Autentica o usuário e salva o JWT na variável de environment `jwt`."
+        "description": "Autentica o usuÃ¡rio e salva o JWT na variÃ¡vel de environment `jwt`."
       },
       "event": [
         {
@@ -121,7 +121,7 @@
               "});",
               "",
               "const json = pm.response.json();",
-              "pm.test('Payload contém roles', function () {",
+              "pm.test('Payload contÃ©m roles', function () {",
               "    pm.expect(json.roles).to.be.an('array');",
               "    pm.expect(json.roles.length).to.be.greaterThan(0);",
               "});",
@@ -165,7 +165,7 @@
               "",
               "const json = pm.response.json();",
               "pm.test('Mensagem de logout OK', function () {",
-              "    pm.expect(json.message).to.eql('Logout realizado com sucesso. Sessão encerrada.');",
+              "    pm.expect(json.message).to.eql('Logout realizado com sucesso. SessÃ£o encerrada.');",
               "});",
               "",
               "pm.environment.set('revokedJwt', pm.environment.get('jwt'));",
@@ -177,7 +177,7 @@
       ]
     },
     {
-      "name": "4 - Chamada pós-logout",
+      "name": "4 - Chamada pÃ³s-logout",
       "request": {
         "method": "GET",
         "header": [
@@ -197,7 +197,7 @@
             "roles"
           ]
         },
-        "description": "Confirma que o token anteriormente emitido foi invalidado após o logout."
+        "description": "Confirma que o token anteriormente emitido foi invalidado apÃ³s o logout."
       },
       "event": [
         {
@@ -205,7 +205,7 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status 401 após logout', function () {",
+              "pm.test('Status 401 apÃ³s logout', function () {",
               "    pm.response.to.have.status(401);",
               "});",
               "",
@@ -221,4 +221,5 @@
     }
   ]
 }
+
 

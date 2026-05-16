@@ -62,5 +62,27 @@ public class Order {
         item.setOrder(this);
         this.itens.add(item);
     }
+
+    public void marcarComoConfirmado() {
+        validarTransicao(StatusPedido.CONFIRMADO);
+        this.status = StatusPedido.CONFIRMADO;
+    }
+
+    public void marcarComoCancelado() {
+        validarTransicao(StatusPedido.CANCELADO);
+        this.status = StatusPedido.CANCELADO;
+    }
+
+    private void validarTransicao(StatusPedido novoStatus) {
+        if (status == null) {
+            throw new IllegalStateException("Pedido precisa ter um status atual antes de transicionar");
+        }
+        if (status == novoStatus) {
+            return;
+        }
+        if (status != StatusPedido.REALIZADO) {
+            throw new IllegalStateException("Pedido em estado final não pode transicionar novamente");
+        }
+    }
 }
 

@@ -33,7 +33,7 @@ public class OrderController {
     }
 
     @PostMapping
-    @Operation(summary = "Criar pedido", description = "Cria um pedido, reserva o estoque no Redis via ticket-service e publica PEDIDO_REALIZADO no Kafka.")
+    @Operation(summary = "Criar pedido", description = "Cria um pedido, reserva o estoque no Redis via ticket-service e publica PEDIDO_REALIZADO no Kafka para o payment-service concluir a confirmação ou o cancelamento.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
             description = "Dados do pedido",

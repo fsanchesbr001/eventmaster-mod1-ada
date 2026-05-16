@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.fabriciosanches</groupId>
         <artifactId>eventmaster-mod1-ada</artifactId>
-        <version>0.0.2</version>
+        <version>1.0.0</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 

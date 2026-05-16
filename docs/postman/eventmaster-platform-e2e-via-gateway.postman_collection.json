@@ -1,0 +1,449 @@
+{
+  "info": {
+    "_postman_id": "8f4fd0cf-8f91-46d0-bcf2-18e228b4ad0a",
+    "name": "EventMaster - Platform E2E via Gateway",
+    "description": "Collection end-to-end para validar o fluxo principal da plataforma via API Gateway: login, criação de evento, criação de pedido, propagação assíncrona e materialização de ingressos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "jwt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "attendeeOneName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "attendeeTwoName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderCreateAttempts",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "ticketPollAttempts",
+      "value": "0",
+      "type": "string"
+    },
+    {
+      "key": "expectedPaymentOutcome",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "expectedOrderOutcome",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "expectedTicketStatus",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "login",
+      "value": "admin@eventmaster.com",
+      "type": "string"
+    },
+    {
+      "key": "senha",
+      "value": "Senha@123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Login via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{login}}\",\n  \"senha\": \"{{senha}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Obtém um JWT via gateway e inicializa as variáveis dinâmicas do fluxo end-to-end."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no login', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('JWT retornado no login', function () {",
+              "    pm.expect(json.jwt).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "const runId = String(Date.now());",
+              "pm.environment.set('jwt', json.jwt);",
+              "pm.environment.unset('eventId');",
+              "pm.environment.unset('orderId');",
+              "pm.environment.set('eventName', 'Show da ADA - E2E Gateway ' + runId);",
+              "pm.environment.set('attendeeOneName', 'Portador E2E A ' + runId);",
+              "pm.environment.set('attendeeTwoName', 'Portador E2E B ' + runId);",
+              "pm.environment.set('orderCreateAttempts', '0');",
+              "pm.environment.set('ticketPollAttempts', '0');",
+              "pm.environment.unset('expectedPaymentOutcome');",
+              "pm.environment.unset('expectedOrderOutcome');",
+              "pm.environment.unset('expectedTicketStatus');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Criar evento via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"{{eventName}}\",\n  \"data\": \"15/12/2026\",\n  \"hora\": \"20:00:00\",\n  \"local\": \"Teatro Central\",\n  \"capacidade\": 1500.0,\n  \"precoBase\": 89.90\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/events",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "events"
+          ]
+        },
+        "description": "Cria um evento base para o fluxo transacional end-to-end do EventMaster."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201 ao criar evento', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Evento criado com id e precoBase corretos', function () {",
+              "    pm.expect(json.id).to.exist;",
+              "    pm.expect(json.nome).to.eql(pm.environment.get('eventName'));",
+              "    pm.expect(Number(json.precoBase)).to.eql(89.9);",
+              "});",
+              "",
+              "pm.environment.set('eventId', json.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Buscar evento via Gateway",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/events/{{eventId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "events",
+            "{{eventId}}"
+          ]
+        },
+        "description": "Confirma o evento criado antes de disparar o pedido."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao buscar evento', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Evento retornado corresponde ao criado no fluxo', function () {",
+              "    pm.expect(String(json.id)).to.eql(String(pm.environment.get('eventId')));",
+              "    pm.expect(json.nome).to.eql(pm.environment.get('eventName'));",
+              "    pm.expect(Number(json.precoBase)).to.eql(89.9);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Criar pedido via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"eventId\": {{eventId}},\n  \"formaPagamento\": \"PIX\",\n  \"itens\": [\n    {\n      \"nomePortador\": \"{{attendeeOneName}}\",\n      \"cpfPortador\": \"123.456.789-00\",\n      \"tipoIngresso\": \"INTEIRA\"\n    },\n    {\n      \"nomePortador\": \"{{attendeeTwoName}}\",\n      \"cpfPortador\": \"987.654.321-00\",\n      \"tipoIngresso\": \"MEIA\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/orders",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "orders"
+          ]
+        },
+        "description": "Cria o pedido no order-service via gateway. Se o estoque ainda não tiver sido carregado no Redis, o request se auto-reexecuta algumas vezes no Collection Runner."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const currentAttempts = Number(pm.environment.get('orderCreateAttempts') || '0');",
+              "if (pm.response.code === 409 && currentAttempts < 5) {",
+              "    pm.environment.set('orderCreateAttempts', String(currentAttempts + 1));",
+              "    postman.setNextRequest(pm.info.requestName);",
+              "    return;",
+              "}",
+              "",
+              "pm.test('Status 201 ao criar pedido', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const orderId = Number(json.id);",
+              "const lastDigit = Math.abs(orderId % 10);",
+              "const paymentDenied = lastDigit === 6 || lastDigit === 9;",
+              "const expectedPaymentOutcome = paymentDenied ? 'PAGAMENTO_NEGADO' : 'PAGAMENTO_CONFIRMADO';",
+              "const expectedOrderOutcome = paymentDenied ? 'CANCELADO' : 'CONFIRMADO';",
+              "const expectedTicketStatus = paymentDenied ? 'Disponivel' : 'Confirmado';",
+              "pm.test('Pedido criado com valorTotal e status corretos', function () {",
+              "    pm.expect(json.id).to.exist;",
+              "    pm.expect(Number(json.valorTotal)).to.eql(134.85);",
+              "    pm.expect(json.status).to.eql('REALIZADO');",
+              "});",
+              "",
+              "pm.test('Fluxo assíncrono esperado foi identificado a partir do orderId', function () {",
+              "    pm.expect(expectedPaymentOutcome).to.be.oneOf(['PAGAMENTO_CONFIRMADO', 'PAGAMENTO_NEGADO']);",
+              "    pm.expect(expectedOrderOutcome).to.be.oneOf(['CONFIRMADO', 'CANCELADO']);",
+              "    pm.expect(expectedTicketStatus).to.be.oneOf(['Confirmado', 'Disponivel']);",
+              "});",
+              "",
+              "pm.environment.set('orderId', json.id);",
+              "pm.environment.set('expectedPaymentOutcome', expectedPaymentOutcome);",
+              "pm.environment.set('expectedOrderOutcome', expectedOrderOutcome);",
+              "pm.environment.set('expectedTicketStatus', expectedTicketStatus);",
+              "pm.environment.set('orderCreateAttempts', '0');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Listar ingressos materializados via Gateway",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/tickets",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "tickets"
+          ]
+        },
+        "description": "Lista os ingressos via gateway e aguarda o estado final produzido pelo fluxo assíncrono entre order-service, payment-service e ticket-service. O request se auto-reexecuta no Collection Runner até os ingressos chegarem em Confirmado ou Disponivel, conforme o orderId gerado."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao listar ingressos', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const tickets = pm.response.json();",
+              "const eventName = pm.environment.get('eventName');",
+              "const attendeeOne = pm.environment.get('attendeeOneName');",
+              "const attendeeTwo = pm.environment.get('attendeeTwoName');",
+              "const expectedTicketStatus = pm.environment.get('expectedTicketStatus');",
+              "const currentAttempts = Number(pm.environment.get('ticketPollAttempts') || '0');",
+              "",
+              "const relevant = tickets.filter(ticket =>",
+              "    ticket.evento === eventName",
+              "    && [attendeeOne, attendeeTwo].includes(ticket.nomeParticipante)",
+              ");",
+              "",
+              "const finalStateReached = relevant.length === 2 && relevant.every(ticket => ticket.situacao === expectedTicketStatus);",
+              "if (!finalStateReached && currentAttempts < 12) {",
+              "    pm.environment.set('ticketPollAttempts', String(currentAttempts + 1));",
+              "    postman.setNextRequest(pm.info.requestName);",
+              "    return;",
+              "}",
+              "",
+              "pm.test('Dois ingressos do pedido foram materializados', function () {",
+              "    pm.expect(relevant.length).to.eql(2);",
+              "});",
+              "",
+              "const byName = {};",
+              "relevant.forEach(ticket => { byName[ticket.nomeParticipante] = ticket; });",
+              "",
+              "pm.test('Ingresso inteira finalizado corretamente', function () {",
+              "    pm.expect(byName[attendeeOne]).to.exist;",
+              "    pm.expect(byName[attendeeOne].tipoIngresso).to.eql('Inteira');",
+              "    pm.expect(byName[attendeeOne].situacao).to.eql(expectedTicketStatus);",
+              "    pm.expect(Number(byName[attendeeOne].valor)).to.eql(89.9);",
+              "});",
+              "",
+              "pm.test('Ingresso meia finalizado corretamente', function () {",
+              "    pm.expect(byName[attendeeTwo]).to.exist;",
+              "    pm.expect(byName[attendeeTwo].tipoIngresso).to.eql('Meia');",
+              "    pm.expect(byName[attendeeTwo].situacao).to.eql(expectedTicketStatus);",
+              "    pm.expect(Number(byName[attendeeTwo].valor)).to.eql(44.95);",
+              "});",
+              "",
+              "pm.environment.set('ticketPollAttempts', '0');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - Logout via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "logout"
+          ]
+        },
+        "description": "Encerra a sessão JWT ao final do fluxo end-to-end."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no logout', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.environment.unset('jwt');",
+              "pm.environment.set('orderCreateAttempts', '0');",
+              "pm.environment.set('ticketPollAttempts', '0');"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+

@@ -1,5 +1,9 @@
 package com.fabriciosanches.orderservice.service;
 
+import com.fabriciosanches.shared.events.PagamentoConfirmadoEvent;
+import com.fabriciosanches.shared.events.PagamentoNegadoEvent;
+import com.fabriciosanches.shared.events.PedidoCanceladoEvent;
+import com.fabriciosanches.shared.events.PedidoConfirmadoEvent;
 import com.fabriciosanches.shared.events.PedidoRealizadoEvent;
 import com.fabriciosanches.shared.events.PedidoRealizadoItemEvent;
 import com.fabriciosanches.orderservice.domain.Order;
@@ -43,19 +47,23 @@ public class OrderService {
     private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
     private final OrderRepository orderRepository;
-    private final KafkaTemplate<String, PedidoRealizadoEvent> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final RestTemplate restTemplate;
     private final String eventServiceUrl;
     private final String ticketServiceUrl;
     private final String pedidoRealizadoTopic;
+    private final String pedidoConfirmadoTopic;
+    private final String pedidoCanceladoTopic;
     private final boolean pedidoRealizadoPublishingEnabled;
 
     public OrderService(OrderRepository orderRepository,
-                        KafkaTemplate<String, PedidoRealizadoEvent> kafkaTemplate,
+                        KafkaTemplate<String, Object> kafkaTemplate,
                         RestTemplate restTemplate,
                         @Value("${endpoint.event-service}") String eventServiceUrl,
                         @Value("${endpoint.ticket-service}") String ticketServiceUrl,
                         @Value("${app.kafka.topic.pedido-realizado}") String pedidoRealizadoTopic,
+                        @Value("${app.kafka.topic.pedido-confirmado}") String pedidoConfirmadoTopic,
+                        @Value("${app.kafka.topic.pedido-cancelado}") String pedidoCanceladoTopic,
                         @Value("${app.messaging.pedido-realizado.enabled:true}") boolean pedidoRealizadoPublishingEnabled) {
         this.orderRepository = orderRepository;
         this.kafkaTemplate = kafkaTemplate;
@@ -63,6 +71,8 @@ public class OrderService {
         this.eventServiceUrl = eventServiceUrl;
         this.ticketServiceUrl = ticketServiceUrl;
         this.pedidoRealizadoTopic = pedidoRealizadoTopic;
+        this.pedidoConfirmadoTopic = pedidoConfirmadoTopic;
+        this.pedidoCanceladoTopic = pedidoCanceladoTopic;
         this.pedidoRealizadoPublishingEnabled = pedidoRealizadoPublishingEnabled;
     }
 
@@ -102,6 +112,48 @@ public class OrderService {
         publicarPedidoRealizado(savedOrder, evento);
 
         return new OrderResponseDTO(savedOrder.getId(), savedOrder.getValorTotal(), savedOrder.getStatus().name());
+    }
+
+    @Transactional
+    public void processarPagamentoConfirmado(PagamentoConfirmadoEvent event) {
+        validarPagamentoConfirmado(event);
+
+        Order order = obterPedidoPorId(event.pedidoId());
+        validarConsistenciaComPedido(order, event.usuarioId(), event.eventoId(), event.valorTotal());
+
+        if (order.getStatus() == StatusPedido.CONFIRMADO) {
+            logger.info("Pedido id={} já está CONFIRMADO. Ignorando reprocessamento do pagamento confirmado.", order.getId());
+            return;
+        }
+        if (order.getStatus() == StatusPedido.CANCELADO) {
+            logger.warn("Pedido id={} já está CANCELADO. Evento de pagamento confirmado será ignorado.", order.getId());
+            return;
+        }
+
+        order.marcarComoConfirmado();
+        orderRepository.save(order);
+        publicarPedidoConfirmado(order, event);
+    }
+
+    @Transactional
+    public void processarPagamentoNegado(PagamentoNegadoEvent event) {
+        validarPagamentoNegado(event);
+
+        Order order = obterPedidoPorId(event.pedidoId());
+        validarConsistenciaComPedido(order, event.usuarioId(), event.eventoId(), event.valorTotal());
+
+        if (order.getStatus() == StatusPedido.CANCELADO) {
+            logger.info("Pedido id={} já está CANCELADO. Ignorando reprocessamento do pagamento negado.", order.getId());
+            return;
+        }
+        if (order.getStatus() == StatusPedido.CONFIRMADO) {
+            logger.warn("Pedido id={} já está CONFIRMADO. Evento de pagamento negado será ignorado.", order.getId());
+            return;
+        }
+
+        order.marcarComoCancelado();
+        orderRepository.save(order);
+        publicarPedidoCancelado(order, event);
     }
 
     private EventResponseDTO buscarEvento(Long eventId, String authorizationHeader) {
@@ -208,6 +260,23 @@ public class OrderService {
         return headers;
     }
 
+    private Order obterPedidoPorId(Long pedidoId) {
+        return orderRepository.findById(pedidoId)
+                .orElseThrow(() -> new OrderIntegrationException("Pedido não encontrado para o id informado: " + pedidoId));
+    }
+
+    private void validarConsistenciaComPedido(Order order, String usuarioId, Long eventoId, BigDecimal valorTotal) {
+        if (!order.getUsuarioId().equals(usuarioId)) {
+            throw new OrderIntegrationException("Evento de pagamento inválido para o usuário do pedido informado.");
+        }
+        if (!order.getEventoId().equals(eventoId)) {
+            throw new OrderIntegrationException("Evento de pagamento inválido para o evento do pedido informado.");
+        }
+        if (order.getValorTotal().compareTo(valorTotal) != 0) {
+            throw new OrderIntegrationException("Evento de pagamento inválido para o valor total do pedido informado.");
+        }
+    }
+
     private void publicarPedidoRealizado(Order order, EventResponseDTO evento) {
         if (!pedidoRealizadoPublishingEnabled) {
             logger.debug("Publicação do PEDIDO_REALIZADO desabilitada para o pedido id={}", order.getId());
@@ -232,9 +301,43 @@ public class OrderService {
                         .toList()
         );
 
+        publicarEvento(pedidoRealizadoTopic, String.valueOf(order.getId()), event, "PEDIDO_REALIZADO", order.getId());
+    }
+
+    private void publicarPedidoConfirmado(Order order, PagamentoConfirmadoEvent pagamentoConfirmadoEvent) {
+        PedidoConfirmadoEvent event = new PedidoConfirmadoEvent(
+                pagamentoConfirmadoEvent.pedidoId(),
+                pagamentoConfirmadoEvent.usuarioId(),
+                pagamentoConfirmadoEvent.eventoId(),
+                pagamentoConfirmadoEvent.eventoNome(),
+                pagamentoConfirmadoEvent.dataEvento(),
+                pagamentoConfirmadoEvent.horaEvento(),
+                pagamentoConfirmadoEvent.valorTotal(),
+                pagamentoConfirmadoEvent.itens()
+        );
+
+        publicarEvento(pedidoConfirmadoTopic, String.valueOf(order.getId()), event, "PEDIDO_CONFIRMADO", order.getId());
+    }
+
+    private void publicarPedidoCancelado(Order order, PagamentoNegadoEvent pagamentoNegadoEvent) {
+        PedidoCanceladoEvent event = new PedidoCanceladoEvent(
+                pagamentoNegadoEvent.pedidoId(),
+                pagamentoNegadoEvent.usuarioId(),
+                pagamentoNegadoEvent.eventoId(),
+                pagamentoNegadoEvent.eventoNome(),
+                pagamentoNegadoEvent.dataEvento(),
+                pagamentoNegadoEvent.horaEvento(),
+                pagamentoNegadoEvent.valorTotal(),
+                pagamentoNegadoEvent.itens()
+        );
+
+        publicarEvento(pedidoCanceladoTopic, String.valueOf(order.getId()), event, "PEDIDO_CANCELADO", order.getId());
+    }
+
+    private void publicarEvento(String topic, String key, Object event, String nomeEvento, Long pedidoId) {
         Runnable publishAction = () -> {
-            logger.info("Publicando evento PEDIDO_REALIZADO no tópico {} para o pedido id={}", pedidoRealizadoTopic, order.getId());
-            kafkaTemplate.send(pedidoRealizadoTopic, String.valueOf(order.getId()), event);
+            logger.info("Publicando evento {} no tópico {} para o pedido id={}", nomeEvento, topic, pedidoId);
+            kafkaTemplate.send(topic, key, event);
         };
 
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
@@ -248,6 +351,69 @@ public class OrderService {
         }
 
         publishAction.run();
+    }
+
+    private void validarPagamentoConfirmado(PagamentoConfirmadoEvent event) {
+        validarEventoPagamento(
+                event == null ? null : event.pedidoId(),
+                event == null ? null : event.usuarioId(),
+                event == null ? null : event.eventoId(),
+                event == null ? null : event.eventoNome(),
+                event == null ? null : event.dataEvento(),
+                event == null ? null : event.horaEvento(),
+                event == null ? null : event.valorTotal(),
+                event == null ? null : event.itens(),
+                "PAGAMENTO_CONFIRMADO"
+        );
+    }
+
+    private void validarPagamentoNegado(PagamentoNegadoEvent event) {
+        validarEventoPagamento(
+                event == null ? null : event.pedidoId(),
+                event == null ? null : event.usuarioId(),
+                event == null ? null : event.eventoId(),
+                event == null ? null : event.eventoNome(),
+                event == null ? null : event.dataEvento(),
+                event == null ? null : event.horaEvento(),
+                event == null ? null : event.valorTotal(),
+                event == null ? null : event.itens(),
+                "PAGAMENTO_NEGADO"
+        );
+    }
+
+    private void validarEventoPagamento(Long pedidoId,
+                                        String usuarioId,
+                                        Long eventoId,
+                                        String eventoNome,
+                                        java.time.LocalDate dataEvento,
+                                        java.time.LocalTime horaEvento,
+                                        BigDecimal valorTotal,
+                                        List<PedidoRealizadoItemEvent> itens,
+                                        String nomeEvento) {
+        if (pedidoId == null || pedidoId <= 0) {
+            throw new OrderValidationException("Evento " + nomeEvento + " precisa informar um pedido válido");
+        }
+        if (usuarioId == null || usuarioId.isBlank()) {
+            throw new OrderValidationException("Evento " + nomeEvento + " precisa informar o usuário do pedido");
+        }
+        if (eventoId == null || eventoId <= 0) {
+            throw new OrderValidationException("Evento " + nomeEvento + " precisa informar um evento válido");
+        }
+        if (eventoNome == null || eventoNome.isBlank()) {
+            throw new OrderValidationException("Evento " + nomeEvento + " precisa informar o nome do evento");
+        }
+        if (dataEvento == null) {
+            throw new OrderValidationException("Evento " + nomeEvento + " precisa informar a data do evento");
+        }
+        if (horaEvento == null) {
+            throw new OrderValidationException("Evento " + nomeEvento + " precisa informar a hora do evento");
+        }
+        if (valorTotal == null || valorTotal.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new OrderValidationException("Evento " + nomeEvento + " precisa informar o valor total do pedido");
+        }
+        if (itens == null || itens.isEmpty()) {
+            throw new OrderValidationException("Evento " + nomeEvento + " precisa informar ao menos um item do pedido");
+        }
     }
 }
 

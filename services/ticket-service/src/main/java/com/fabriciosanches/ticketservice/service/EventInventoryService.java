@@ -60,6 +60,20 @@ public class EventInventoryService {
         }
     }
 
+    public void devolverIngressos(Long eventId, Integer quantidade) {
+        if (eventId == null || eventId <= 0) {
+            throw new TicketInventoryException("Identificador do evento é obrigatório para devolução");
+        }
+        if (quantidade == null || quantidade <= 0) {
+            throw new TicketInventoryException("Quantidade de ingressos devolvidos deve ser maior que zero");
+        }
+
+        Long result = redisTemplate.opsForValue().increment(buildInventoryKey(eventId), quantidade);
+        if (result == null) {
+            throw new TicketInventoryException("Falha ao devolver ingressos ao Redis");
+        }
+    }
+
     public String buildInventoryKey(Long eventId) {
         return "evento:" + eventId + ":ingressos_disponiveis";
     }
