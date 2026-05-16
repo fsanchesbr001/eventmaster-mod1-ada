@@ -1,0 +1,271 @@
+{
+  "info": {
+    "_postman_id": "4e5b4df7-3ac2-4668-ac34-15d4fc05b949",
+    "name": "EventMaster - Event Service CRUD",
+    "description": "Collection para testar o CRUD completo do event-service: criar, listar, buscar, atualizar, excluir e validar ausência após exclusão.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8082",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Criar evento",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Show da ADA\",\n  \"data\": \"10/12/2026\",\n  \"hora\": \"20:00:00\",\n  \"local\": \"Teatro Central\",\n  \"capacidade\": 1500.0\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/event-service/eventos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "event-service",
+            "eventos"
+          ]
+        },
+        "description": "Cria um novo evento e salva o id em `eventId`."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201 ao criar evento', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Evento criado com id', function () {",
+              "    pm.expect(json.id).to.exist;",
+              "});",
+              "",
+              "pm.environment.set('eventId', json.id);",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Listar eventos",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/event-service/eventos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "event-service",
+            "eventos"
+          ]
+        },
+        "description": "Lista todos os eventos cadastrados."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao listar eventos', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Retornou lista de eventos', function () {",
+              "    pm.expect(json).to.be.an('array');",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Buscar evento por id",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/event-service/eventos/{{eventId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "event-service",
+            "eventos",
+            "{{eventId}}"
+          ]
+        },
+        "description": "Busca o evento recém-criado pelo id salvo no environment."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao buscar por id', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Evento correto retornado', function () {",
+              "    pm.expect(String(json.id)).to.eql(String(pm.environment.get('eventId')));",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Atualizar evento",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Peça de Teatro Premium\",\n  \"data\": \"12/12/2026\",\n  \"hora\": \"21:30:00\",\n  \"local\": \"Auditório Principal\",\n  \"capacidade\": 950.0\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/event-service/eventos/{{eventId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "event-service",
+            "eventos",
+            "{{eventId}}"
+          ]
+        },
+        "description": "Atualiza todos os campos do evento existente."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao atualizar evento', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Evento atualizado com sucesso', function () {",
+              "    pm.expect(json.nome).to.eql('Peça de Teatro Premium');",
+              "    pm.expect(json.capacidade).to.eql(950);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Excluir evento",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/event-service/eventos/{{eventId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "event-service",
+            "eventos",
+            "{{eventId}}"
+          ]
+        },
+        "description": "Exclui o evento salvo no environment."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 204 ao excluir evento', function () {",
+              "    pm.response.to.have.status(204);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - Buscar evento excluído",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/event-service/eventos/{{eventId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "event-service",
+            "eventos",
+            "{{eventId}}"
+          ]
+        },
+        "description": "Confirma que o evento não existe mais após a exclusão."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 404 após exclusão', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Erro NOT_FOUND retornado', function () {",
+              "    pm.expect(json.error).to.eql('NOT_FOUND');",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+

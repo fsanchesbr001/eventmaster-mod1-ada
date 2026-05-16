@@ -11,6 +11,8 @@ eventmaster-mod1-ada/
   pom.xml                 # agregador (packaging pom)
   services/
     user-service/         # modulo Maven do servico de usuarios
+    event-service/        # modulo Maven do servico de eventos
+    ticket-service/       # modulo Maven do servico de ingressos
     gateway-service/      # API Gateway (Spring Cloud Gateway)
 ```
 
@@ -47,6 +49,16 @@ Com o `user-service` em execucao, acesse:
 
 - Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 - OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
+Com o `event-service` em execucao, acesse:
+
+- Swagger UI: `http://localhost:8082/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8082/v3/api-docs`
+
+Com o `ticket-service` em execucao, acesse:
+
+- Swagger UI: `http://localhost:8083/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8083/v3/api-docs`
 
 ### Autenticacao no Swagger
 
@@ -104,6 +116,18 @@ Os arquivos de apoio para testes manuais do `user-service` estao em `docs/postma
 - Environment: `docs/postman/eventmaster-user-service-local.postman_environment.json`
 - Guia rapido: `docs/postman/README.md`
 
+Os arquivos de apoio para testes manuais do `event-service` tambem estao em `docs/postman/`:
+
+- Collection: `docs/postman/eventmaster-event-service-crud.postman_collection.json`
+- Environment: `docs/postman/eventmaster-event-service-local.postman_environment.json`
+- Guia rapido: `docs/postman/README.md`
+
+Os arquivos de apoio para testes manuais do `ticket-service` via gateway tambem estao em `docs/postman/`:
+
+- Collection: `docs/postman/eventmaster-ticket-service-crud.postman_collection.json`
+- Environment: `docs/postman/eventmaster-ticket-service-local.postman_environment.json`
+- Guia rapido: `docs/postman/README.md`
+
 ### Fluxo coberto na collection
 
 1. `Login`
@@ -140,20 +164,30 @@ Com o `gateway-service` rodando na porta `8081` e o `user-service` na `8080`, as
 - Auth user-service: `http://localhost:8081/api/auth/**` -> `http://localhost:8080/auth/**`
 - OpenAPI user-service: `http://localhost:8081/api/users/v3/api-docs`
 - Swagger UI user-service via gateway: `http://localhost:8081/api/users/swagger-ui/index.html`
+- API eventos: `http://localhost:8081/api/events/**` -> `http://localhost:8082/event-service/eventos/**`
+- OpenAPI event-service: `http://localhost:8081/api/events/v3/api-docs`
+- Swagger UI event-service via gateway: `http://localhost:8081/api/events/swagger-ui/index.html`
+- API ingressos: `http://localhost:8081/api/tickets/**` -> `http://localhost:8083/ticket-service/ingressos/**`
+- OpenAPI ticket-service: `http://localhost:8081/api/tickets/v3/api-docs`
+- Swagger UI ticket-service via gateway: `http://localhost:8081/api/tickets/swagger-ui/index.html`
 
 Variaveis uteis:
 
 - `USER_SERVICE_URL` (default: `http://localhost:8080`)
+- `EVENT_SERVICE_URL` (default: `http://localhost:8082`)
+- `TICKET_SERVICE_URL` (default: `http://localhost:8083`)
 - `PORT` para porta do gateway (default: `8081`)
 - `JWT_SECRET` segredo do token (deve ser igual ao `user-service`)
-- `JWT_ISSUER` issuer do token (default: `API Ficha Tecnica`)
+- `JWT_ISSUER` issuer do token (default: `API Event Master`)
 
 ### Estrategia de autenticacao adotada
 
 - O `gateway-service` valida JWT em rotas protegidas (assinatura, issuer e expiracao).
 - O `user-service` tambem valida o JWT (defesa em profundidade).
+- O `event-service` tambem valida o JWT (defesa em profundidade).
+- O `ticket-service` tambem valida o JWT (defesa em profundidade).
 - Rotas publicas no gateway: `POST /api/auth/login`, docs Swagger e `OPTIONS`.
-- `POST /api/auth/logout` e `/api/users/**` exigem token.
+- `POST /api/auth/logout`, `/api/users/**`, `/api/events/**` e `/api/tickets/**` exigem token.
 
 ## Observabilidade no Gateway
 
@@ -170,7 +204,7 @@ Se o cliente nao enviar `X-Correlation-Id`, o gateway gera automaticamente e dev
 ## Sobre o monorepo
 
 - A raiz (`pom.xml`) agrega modulos com `<packaging>pom</packaging>`.
-- O modulo atual registrado e `services/user-service`.
+- Os modulos atualmente registrados sao `services/user-service`, `services/event-service`, `services/ticket-service` e `services/gateway-service`.
 - Novos servicos devem ser criados em `services/<nome-do-servico>` e adicionados em `<modules>` no `pom.xml` da raiz.
 
 ## Dicas para IntelliJ
