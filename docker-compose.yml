@@ -1,0 +1,53 @@
+services:
+  # 1. Banco de Dados MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: eventmaster-mysql
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - eventmaster-network
+
+  # 2. Cache em Memória Redis
+  redis:
+    image: redis:latest
+    container_name: eventmaster-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - eventmaster-network
+
+  # 3. Mensageria Apache Kafka (Modo KRaft - Sem Zookeeper)
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: eventmaster-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:29093
+      - KAFKA_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://kafka:29093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      - KAFKA_LOG_DIRS=/tmp/kraft-combined-logs
+      - CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+    networks:
+      - eventmaster-network
+
+volumes:
+  mysql_data:
+
+networks:
+  eventmaster-network:
+    driver: bridge

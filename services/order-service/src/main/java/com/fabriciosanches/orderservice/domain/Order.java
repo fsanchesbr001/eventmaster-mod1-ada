@@ -16,6 +16,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -45,10 +47,12 @@ public class Order {
     private BigDecimal valorTotal;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "forma_pagamento", nullable = false, length = 50)
     private FormaPagamento formaPagamento;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 50)
     private StatusPedido status;
 
