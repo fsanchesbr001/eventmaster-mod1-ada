@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -44,12 +45,16 @@ public class Event {
     @Column(nullable = false)
     private Double capacidade;
 
-    public Event(String nome, LocalDate data, LocalTime hora, String local, Double capacidade) {
+    @Column(name = "preco_base", nullable = false, precision = 10, scale = 2)
+    private BigDecimal precoBase;
+
+    public Event(String nome, LocalDate data, LocalTime hora, String local, Double capacidade, BigDecimal precoBase) {
         this.nome = nome;
         this.data = data;
         this.hora = hora;
         this.local = local;
         this.capacidade = capacidade;
+        this.precoBase = precoBase;
     }
 }
 

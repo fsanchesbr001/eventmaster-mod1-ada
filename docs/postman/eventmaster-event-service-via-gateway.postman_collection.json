@@ -1,0 +1,412 @@
+{
+  "info": {
+    "_postman_id": "5df4a8ca-09bb-49bd-95c6-1876b86e1854",
+    "name": "EventMaster - Event Service CRUD via Gateway",
+    "description": "Collection para autenticar via user-service e testar o CRUD completo do event-service através do API Gateway.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "jwt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "login",
+      "value": "admin@eventmaster.com",
+      "type": "string"
+    },
+    {
+      "key": "senha",
+      "value": "Senha@123",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Login via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"{{login}}\",\n  \"senha\": \"{{senha}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Obtém um JWT pelo gateway para uso nas chamadas do event-service."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no login', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('JWT retornado no login', function () {",
+              "    pm.expect(json.jwt).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.environment.set('jwt', json.jwt);",
+              "pm.environment.unset('eventId');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Criar evento via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Show da ADA\",\n  \"data\": \"10/12/2026\",\n  \"hora\": \"20:00:00\",\n  \"local\": \"Teatro Central\",\n  \"capacidade\": 1500.0,\n  \"precoBase\": 89.90\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/events",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "events"
+          ]
+        },
+        "description": "Cria um evento através do gateway e salva o id interno em `eventId`."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201 ao criar evento', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Evento criado com id', function () {",
+              "    pm.expect(json.id).to.exist;",
+              "    pm.expect(json.nome).to.eql('Show da ADA');",
+              "    pm.expect(Number(json.precoBase)).to.eql(89.9);",
+              "});",
+              "",
+              "pm.environment.set('eventId', json.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Listar eventos via Gateway",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/events",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "events"
+          ]
+        },
+        "description": "Lista todos os eventos através do gateway."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao listar eventos', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Retornou lista de eventos', function () {",
+              "    pm.expect(json).to.be.an('array');",
+              "    pm.expect(json.length).to.be.greaterThan(0);",
+              "    pm.expect(json[0]).to.have.property('precoBase');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Buscar evento por id via Gateway",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/events/{{eventId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "events",
+            "{{eventId}}"
+          ]
+        },
+        "description": "Busca o evento salvo anteriormente pelo identificador interno."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao buscar evento por id', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Evento correto retornado', function () {",
+              "    pm.expect(String(json.id)).to.eql(String(pm.environment.get('eventId')));",
+              "    pm.expect(json.nome).to.eql('Show da ADA');",
+              "    pm.expect(Number(json.precoBase)).to.eql(89.9);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Atualizar evento via Gateway",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Peça de Teatro Premium\",\n  \"data\": \"12/12/2026\",\n  \"hora\": \"21:30:00\",\n  \"local\": \"Auditório Principal\",\n  \"capacidade\": 950.0,\n  \"precoBase\": 120.00\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/events/{{eventId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "events",
+            "{{eventId}}"
+          ]
+        },
+        "description": "Atualiza o evento já criado através do gateway."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 ao atualizar evento', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Evento atualizado com sucesso', function () {",
+              "    pm.expect(json.nome).to.eql('Peça de Teatro Premium');",
+              "    pm.expect(Number(json.capacidade)).to.eql(950);",
+              "    pm.expect(Number(json.precoBase)).to.eql(120);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - Excluir evento via Gateway",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/events/{{eventId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "events",
+            "{{eventId}}"
+          ]
+        },
+        "description": "Exclui o evento criado no fluxo de teste."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 204 ao excluir evento', function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 - Buscar evento excluído via Gateway",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/events/{{eventId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "events",
+            "{{eventId}}"
+          ]
+        },
+        "description": "Confirma que o evento removido não pode mais ser consultado."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 404 após excluir evento', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('Erro NOT_FOUND retornado', function () {",
+              "    pm.expect(json.error).to.eql('NOT_FOUND');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8 - Logout via Gateway",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "logout"
+          ]
+        },
+        "description": "Finaliza a sessão ao final do fluxo de testes."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 no logout', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.environment.unset('jwt');"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+

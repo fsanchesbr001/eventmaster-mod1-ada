@@ -8,6 +8,8 @@ Arquivos de apoio para testar manualmente os módulos `user-service`, `event-ser
 - `eventmaster-user-service-local.postman_environment.json`
 - `eventmaster-event-service-crud.postman_collection.json`
 - `eventmaster-event-service-local.postman_environment.json`
+- `eventmaster-event-service-via-gateway.postman_collection.json`
+- `eventmaster-event-service-via-gateway.postman_environment.json`
 - `eventmaster-ticket-service-crud.postman_collection.json`
 - `eventmaster-ticket-service-local.postman_environment.json`
 
@@ -105,6 +107,7 @@ Valor padrão atual:
 #### 1 - Criar evento
 - status `201`
 - salva o identificador do evento em `eventId`
+- envia e valida o campo `precoBase`
 
 #### 2 - Listar eventos
 - status `200`
@@ -113,10 +116,12 @@ Valor padrão atual:
 #### 3 - Buscar evento por id
 - status `200`
 - retorna o evento salvo em `eventId`
+- valida o valor de `precoBase`
 
 #### 4 - Atualizar evento
 - status `200`
 - retorna os dados atualizados
+- valida a alteração de `precoBase`
 
 #### 5 - Excluir evento
 - status `204`
@@ -124,6 +129,76 @@ Valor padrão atual:
 #### 6 - Buscar evento excluído
 - status `404`
 - valida que o recurso não existe mais
+
+## Collection do event-service via gateway
+
+A collection de eventos via gateway executa o CRUD autenticado completo, incluindo login no início e logout no final:
+
+1. `1 - Login via Gateway`
+2. `2 - Criar evento via Gateway`
+3. `3 - Listar eventos via Gateway`
+4. `4 - Buscar evento por id via Gateway`
+5. `5 - Atualizar evento via Gateway`
+6. `6 - Excluir evento via Gateway`
+7. `7 - Buscar evento excluído via Gateway`
+8. `8 - Logout via Gateway`
+
+### Variáveis do environment do event-service via gateway
+
+- `baseUrl`: URL base do `gateway-service`
+- `jwt`: token JWT obtido no login
+- `eventId`: id interno do evento criado durante o fluxo
+- `login`: usuário usado no login
+- `senha`: senha usada no login
+
+Valor padrão atual:
+
+- `baseUrl = http://localhost:8081`
+
+### Como executar o fluxo do event-service via gateway
+
+1. Importe a collection `eventmaster-event-service-via-gateway.postman_collection.json`
+2. Importe o environment `eventmaster-event-service-via-gateway.postman_environment.json`
+3. Selecione o environment **EventMaster - Event Service Local via Gateway**
+4. Garanta que `gateway-service`, `user-service` e `event-service` estejam rodando
+5. Execute os requests na ordem definida na collection
+
+### Comportamento esperado no event-service via gateway
+
+#### 1 - Login via Gateway
+- status `200`
+- salva o token em `jwt`
+
+#### 2 - Criar evento via Gateway
+- status `201`
+- salva o identificador interno em `eventId`
+- envia e valida o campo `precoBase`
+
+#### 3 - Listar eventos via Gateway
+- status `200`
+- retorna uma lista com ao menos um evento
+- valida a presença de `precoBase`
+
+#### 4 - Buscar evento por id via Gateway
+- status `200`
+- retorna o evento salvo em `eventId`
+- valida o valor de `precoBase`
+
+#### 5 - Atualizar evento via Gateway
+- status `200`
+- retorna os dados atualizados
+- valida a alteração de `precoBase`
+
+#### 6 - Excluir evento via Gateway
+- status `204`
+
+#### 7 - Buscar evento excluído via Gateway
+- status `404`
+- valida que o recurso não existe mais
+
+#### 8 - Logout via Gateway
+- status `200`
+- limpa a variável `jwt`
 
 ## Collection do ticket-service
 
@@ -167,6 +242,7 @@ Valor padrão atual:
 #### 2 - Criar ingresso via Gateway
 - status `201`
 - salva o identificador interno em `ticketId`
+- envia e valida o campo `situacao`
 
 #### 3 - Listar ingressos via Gateway
 - status `200`
@@ -175,10 +251,12 @@ Valor padrão atual:
 #### 4 - Buscar ingresso por id via Gateway
 - status `200`
 - retorna o ingresso salvo em `ticketId`
+- valida o valor de `situacao`
 
 #### 5 - Atualizar ingresso via Gateway
 - status `200`
 - retorna os dados atualizados
+- valida a alteração de `situacao`
 
 #### 6 - Excluir ingresso via Gateway
 - status `204`

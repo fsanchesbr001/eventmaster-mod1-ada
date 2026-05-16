@@ -23,6 +23,12 @@ public class TicketExceptionHandler {
                 .body(Map.of("error", "BAD_REQUEST", "message", ex.getMessage()));
     }
 
+    @ExceptionHandler(TicketInventoryException.class)
+    public ResponseEntity<Map<String, String>> handleInventory(TicketInventoryException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "CONFLICT", "message", ex.getMessage()));
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleInvalidPayload(HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest()

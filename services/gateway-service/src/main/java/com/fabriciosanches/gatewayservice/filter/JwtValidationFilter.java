@@ -96,6 +96,8 @@ public class JwtValidationFilter implements GlobalFilter, Ordered {
                 || path.startsWith("/api/events/v3/api-docs")
                 || path.startsWith("/api/tickets/swagger-ui")
                 || path.startsWith("/api/tickets/v3/api-docs")
+                || path.startsWith("/api/orders/swagger-ui")
+                || path.startsWith("/api/orders/v3/api-docs")
                 || path.startsWith("/actuator/health")
                 || path.startsWith("/actuator/info");
     }
