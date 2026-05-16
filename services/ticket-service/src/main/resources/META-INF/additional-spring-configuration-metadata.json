@@ -1,0 +1,17 @@
+{
+  "properties": [
+    {
+      "name": "app.kafka.topic.evento-criado",
+      "type": "java.lang.String",
+      "description": "Nome do tópico Kafka consumido para inicialização de inventário de ingressos.",
+      "defaultValue": "EVENTO_CRIADO"
+    },
+    {
+      "name": "app.kafka.topic.pedido-realizado",
+      "type": "java.lang.String",
+      "description": "Nome do tópico Kafka consumido para materializar ingressos físicos após a conclusão do pedido.",
+      "defaultValue": "PEDIDO_REALIZADO"
+    }
+  ]
+}
+

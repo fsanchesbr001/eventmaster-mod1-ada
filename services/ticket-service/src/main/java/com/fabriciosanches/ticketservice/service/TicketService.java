@@ -1,8 +1,12 @@
 package com.fabriciosanches.ticketservice.service;
 
+import com.fabriciosanches.shared.events.PedidoRealizadoEvent;
+import com.fabriciosanches.shared.events.PedidoRealizadoItemEvent;
 import com.fabriciosanches.ticketservice.domain.Ticket;
+import com.fabriciosanches.ticketservice.dtos.ReservaRequestDTO;
 import com.fabriciosanches.ticketservice.dtos.TicketRequestDTO;
 import com.fabriciosanches.ticketservice.dtos.TicketResponseDTO;
+import com.fabriciosanches.ticketservice.exceptions.TicketInventoryException;
 import com.fabriciosanches.ticketservice.exceptions.TicketNotFoundException;
 import com.fabriciosanches.ticketservice.exceptions.TicketValidationException;
 import com.fabriciosanches.ticketservice.repository.TicketRepository;
@@ -25,9 +29,11 @@ public class TicketService {
     private static final String SITUACAO_PADRAO = "Disponivel";
 
     private final TicketRepository ticketRepository;
+    private final EventInventoryService eventInventoryService;
 
-    public TicketService(TicketRepository ticketRepository) {
+    public TicketService(TicketRepository ticketRepository, EventInventoryService eventInventoryService) {
         this.ticketRepository = ticketRepository;
+        this.eventInventoryService = eventInventoryService;
     }
 
     @Transactional
@@ -93,9 +99,93 @@ public class TicketService {
         ticketRepository.delete(ticket);
     }
 
+    public void reservarIngressos(ReservaRequestDTO request) {
+        if (request == null) {
+            throw new TicketInventoryException("Payload de reserva é obrigatório");
+        }
+        logger.info("Reservando {} ingressos para o evento id={}", request.quantidade(), request.eventId());
+        eventInventoryService.reservarIngressos(request.eventId(), request.quantidade());
+    }
+
+    @Transactional
+    public void registrarPedidoRealizado(PedidoRealizadoEvent event) {
+        validarPedidoRealizado(event);
+
+        if (ticketRepository.existsByPedidoId(event.pedidoId())) {
+            logger.info("Pedido id={} já foi materializado no banco de ingressos. Ignorando reprocessamento.", event.pedidoId());
+            return;
+        }
+
+        long proximoIdIngresso = ticketRepository.findTopByOrderByIdIngressoDesc()
+                .map(ticket -> ticket.getIdIngresso() + 1)
+                .orElse(1L);
+
+        for (PedidoRealizadoItemEvent item : event.itens()) {
+            String tipoIngressoNormalizado = normalizarTipoIngresso(item.tipoIngresso());
+            if (!TIPOS_INGRESSO_VALIDOS.contains(tipoIngressoNormalizado)) {
+                throw new TicketValidationException("Tipo do ingresso do pedido realizado deve ser Meia ou Inteira");
+            }
+
+            Ticket ticket = new Ticket(
+                    proximoIdIngresso++,
+                    event.eventoNome().trim(),
+                    event.dataEvento(),
+                    event.horaEvento(),
+                    tipoIngressoNormalizado,
+                    item.precoPago().setScale(2, RoundingMode.HALF_UP),
+                    item.nomePortador().trim(),
+                    item.cpfPortador().trim(),
+                    "Reservado"
+            );
+            ticket.setPedidoId(event.pedidoId());
+            ticketRepository.save(ticket);
+        }
+    }
+
     private Ticket obterEntidade(Long id) {
         return ticketRepository.findById(id)
                 .orElseThrow(() -> new TicketNotFoundException("Ingresso não encontrado para o id: " + id));
+    }
+
+    private void validarPedidoRealizado(PedidoRealizadoEvent event) {
+        if (event == null) {
+            throw new TicketValidationException("Evento de pedido realizado é obrigatório");
+        }
+        if (event.eventoId() == null || event.eventoId() <= 0) {
+            throw new TicketValidationException("Identificador do evento do pedido realizado é obrigatório");
+        }
+        if (event.pedidoId() == null || event.pedidoId() <= 0) {
+            throw new TicketValidationException("Identificador do pedido realizado é obrigatório");
+        }
+        if (event.eventoNome() == null || event.eventoNome().isBlank()) {
+            throw new TicketValidationException("Nome do evento do pedido realizado é obrigatório");
+        }
+        if (event.dataEvento() == null) {
+            throw new TicketValidationException("Data do evento do pedido realizado é obrigatória");
+        }
+        if (event.horaEvento() == null) {
+            throw new TicketValidationException("Hora do evento do pedido realizado é obrigatória");
+        }
+        if (event.itens() == null || event.itens().isEmpty()) {
+            throw new TicketValidationException("Pedido realizado deve conter ao menos um item");
+        }
+        for (PedidoRealizadoItemEvent item : event.itens()) {
+            if (item == null) {
+                throw new TicketValidationException("Itens do pedido realizado devem ser válidos");
+            }
+            if (item.nomePortador() == null || item.nomePortador().isBlank()) {
+                throw new TicketValidationException("Nome do portador do pedido realizado é obrigatório");
+            }
+            if (item.cpfPortador() == null || item.cpfPortador().isBlank()) {
+                throw new TicketValidationException("CPF do portador do pedido realizado é obrigatório");
+            }
+            if (item.tipoIngresso() == null || item.tipoIngresso().isBlank()) {
+                throw new TicketValidationException("Tipo do ingresso do pedido realizado é obrigatório");
+            }
+            if (item.precoPago() == null || item.precoPago().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new TicketValidationException("Preço pago do item do pedido realizado deve ser maior que zero");
+            }
+        }
     }
 
     private TicketRequestDTO validarEPadronizar(TicketRequestDTO request, Long currentId) {

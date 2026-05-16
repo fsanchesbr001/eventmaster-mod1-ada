@@ -33,6 +33,9 @@ public class Ticket {
     @Column(name = "id_ingresso", nullable = false, unique = true)
     private Long idIngresso;
 
+    @Column(name = "pedido_id")
+    private Long pedidoId;
+
     @Column(nullable = false, length = 255)
     private String evento;
 

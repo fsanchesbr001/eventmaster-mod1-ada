@@ -4,6 +4,7 @@ import com.fabriciosanches.eventservice.domain.Event;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -22,7 +23,9 @@ public record EventResponseDTO(
         @Schema(description = "Nome do local do evento", example = "Teatro Central")
         String local,
         @Schema(description = "Capacidade total de pessoas no local", example = "1500.0")
-        Double capacidade
+        Double capacidade,
+        @Schema(description = "Preço base do evento", example = "89.90")
+        BigDecimal precoBase
 ) {
     public EventResponseDTO(Event event) {
         this(
@@ -31,7 +34,8 @@ public record EventResponseDTO(
                 event.getData(),
                 event.getHora(),
                 event.getLocal(),
-                event.getCapacidade()
+                event.getCapacidade(),
+                event.getPrecoBase()
         );
     }
 }

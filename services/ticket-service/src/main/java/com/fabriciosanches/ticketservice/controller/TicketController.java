@@ -1,6 +1,7 @@
 package com.fabriciosanches.ticketservice.controller;
 
 import com.fabriciosanches.ticketservice.dtos.ApiErrorResponseDTO;
+import com.fabriciosanches.ticketservice.dtos.ReservaRequestDTO;
 import com.fabriciosanches.ticketservice.dtos.TicketRequestDTO;
 import com.fabriciosanches.ticketservice.dtos.TicketResponseDTO;
 import com.fabriciosanches.ticketservice.service.TicketService;
@@ -71,6 +72,25 @@ public class TicketController {
     })
     public ResponseEntity<List<TicketResponseDTO>> listarTodos() {
         return ResponseEntity.ok(ticketService.listarTodos());
+    }
+
+    @PostMapping("/reserva")
+    @Operation(summary = "Reservar ingressos no Redis", description = "Reserva uma quantidade de ingressos do evento no Redis para uso transacional pelo order-service.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            description = "Evento e quantidade a reservar",
+            content = @Content(
+                    schema = @Schema(implementation = ReservaRequestDTO.class),
+                    examples = @ExampleObject(name = "reserva", value = "{\"eventId\":1,\"quantidade\":2}")))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Reserva efetuada com sucesso"),
+            @ApiResponse(responseCode = "409", description = "Sem estoque disponível", content = @Content(
+                    schema = @Schema(implementation = ApiErrorResponseDTO.class),
+                    examples = @ExampleObject(value = "{\"error\":\"CONFLICT\",\"message\":\"Ingressos indisponíveis ou esgotados para o evento informado\"}")))
+    })
+    public ResponseEntity<Void> reservar(@RequestBody ReservaRequestDTO request) {
+        ticketService.reservarIngressos(request);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}")

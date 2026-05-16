@@ -103,7 +103,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"idIngresso\": 100001,\n  \"evento\": \"Show da ADA\",\n  \"data\": \"10/12/2026\",\n  \"hora\": \"20:00:00\",\n  \"tipoIngresso\": \"Inteira\",\n  \"valor\": 120.50,\n  \"nomeParticipante\": \"Fabricio Sanches\",\n  \"cpfParticipante\": \"123.456.789-00\"\n}",
+          "raw": "{\n  \"idIngresso\": 100001,\n  \"evento\": \"Show da ADA\",\n  \"data\": \"10/12/2026\",\n  \"hora\": \"20:00:00\",\n  \"tipoIngresso\": \"Inteira\",\n  \"valor\": 120.50,\n  \"nomeParticipante\": \"Fabricio Sanches\",\n  \"cpfParticipante\": \"123.456.789-00\",\n  \"situacao\": \"Disponivel\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -136,6 +136,7 @@
               "pm.test('Ingresso criado com id', function () {",
               "    pm.expect(json.id).to.exist;",
               "    pm.expect(json.idIngresso).to.eql(100001);",
+              "    pm.expect(json.situacao).to.eql('Disponivel');",
               "});",
               "",
               "pm.environment.set('ticketId', json.id);"
@@ -180,6 +181,7 @@
               "pm.test('Retornou lista de ingressos', function () {",
               "    pm.expect(json).to.be.an('array');",
               "    pm.expect(json.length).to.be.greaterThan(0);",
+              "    pm.expect(json[0]).to.have.property('situacao');",
               "});"
             ]
           }
@@ -223,6 +225,7 @@
               "pm.test('Ingresso correto retornado', function () {",
               "    pm.expect(String(json.id)).to.eql(String(pm.environment.get('ticketId')));",
               "    pm.expect(json.evento).to.eql('Show da ADA');",
+              "    pm.expect(json.situacao).to.eql('Disponivel');",
               "});"
             ]
           }
@@ -245,7 +248,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"idIngresso\": 100001,\n  \"evento\": \"Peça de Teatro Premium\",\n  \"data\": \"12/12/2026\",\n  \"hora\": \"21:30:00\",\n  \"tipoIngresso\": \"Meia\",\n  \"valor\": 75.00,\n  \"nomeParticipante\": \"Fabricio Sanches\",\n  \"cpfParticipante\": \"123.456.789-00\"\n}",
+          "raw": "{\n  \"idIngresso\": 100001,\n  \"evento\": \"Peça de Teatro Premium\",\n  \"data\": \"12/12/2026\",\n  \"hora\": \"21:30:00\",\n  \"tipoIngresso\": \"Meia\",\n  \"valor\": 75.00,\n  \"nomeParticipante\": \"Fabricio Sanches\",\n  \"cpfParticipante\": \"123.456.789-00\",\n  \"situacao\": \"Reservado\"\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -280,6 +283,7 @@
               "    pm.expect(json.evento).to.eql('Peça de Teatro Premium');",
               "    pm.expect(json.tipoIngresso).to.eql('Meia');",
               "    pm.expect(Number(json.valor)).to.eql(75);",
+              "    pm.expect(json.situacao).to.eql('Reservado');",
               "});"
             ]
           }

@@ -1,0 +1,3 @@
+ALTER TABLE eventos
+    ADD COLUMN preco_base DECIMAL(10,2) NOT NULL DEFAULT 0.00;
+
