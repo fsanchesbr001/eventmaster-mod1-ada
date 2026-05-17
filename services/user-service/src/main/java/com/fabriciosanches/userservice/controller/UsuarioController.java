@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.transaction.Transactional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -89,7 +90,7 @@ public class UsuarioController {
                     schema = @Schema(implementation = RegisterDTO.class),
                     examples = @ExampleObject(name = "novoUsuario", value = "{\"login\":\"novo.usuario@eventmaster.com\",\"senha\":\"Senha@123\",\"role\":\"USER\",\"nome\":\"Novo Usuario\",\"cpf\":\"12345678900\"}")))
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Usuario registrado com sucesso"),
+            @ApiResponse(responseCode = "201", description = "Usuario registrado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados invalidos ou regra de negocio violada", content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(name = "erroValidacao", value = "{\"error\":\"BAD_REQUEST\",\"message\":\"Login ja cadastrado\"}"))),
@@ -104,7 +105,7 @@ public class UsuarioController {
             segurancaService.registrarUsuario(dados);
             logger.info("Usuário registrado com sucesso");
             logger.info("Fim do método registrarUsuario");
-            return ResponseEntity.ok().build();
+            return ResponseEntity.status(HttpStatus.CREATED).build();
         } catch (UsuarioException e) {
             logger.error("Erro ao registrar usuário", e);
             return ResponseEntity.badRequest().body(buildError("BAD_REQUEST", e.getMessage()));
@@ -126,7 +127,7 @@ public class UsuarioController {
                     schema = @Schema(implementation = UsuarioListagemDTO.class),
                     examples = @ExampleObject(name = "usuarioParaExclusao", value = "{\"nome\":\"Usuario Alvo\",\"role\":\"USER\",\"login\":\"usuario.alvo@eventmaster.com\"}")))
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Usuario excluido com sucesso"),
+            @ApiResponse(responseCode = "204", description = "Usuario excluido com sucesso"),
             @ApiResponse(responseCode = "400", description = "Erro de validacao ou usuario inexistente", content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(name = "erroNegocio", value = "{\"error\":\"BAD_REQUEST\",\"message\":\"Usuario nao encontrado para exclusao\"}")))
@@ -138,7 +139,7 @@ public class UsuarioController {
             segurancaService.excluirUsuario(dados.login());
             logger.info("Usuário excluído com sucesso");
             logger.info("Fim do método excluirUsuario");
-            return ResponseEntity.ok().build();
+            return ResponseEntity.noContent().build();
         } catch (UsuarioException e) {
             logger.error("Erro ao excluir usuário", e);
             return ResponseEntity.badRequest().body(buildError("BAD_REQUEST", e.getMessage()));
@@ -153,7 +154,7 @@ public class UsuarioController {
     @Operation(summary = "Atualizar usuario", description = "Atualiza os dados de um usuario. Requer role ADMIN.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
-            description = "Dados atualizados do usuario (utiliza o campo login para localizar o registro)",
+            description = "Dados atualizados do usuario. O email da rota localiza o registro; o campo login do body pode ser usado para alterar o email.",
             content = @Content(
                     schema = @Schema(implementation = UsuarioListagemDTO.class),
                     examples = @ExampleObject(name = "usuarioAtualizado", value = "{\"nome\":\"Usuario Atualizado\",\"role\":\"SYSTEM\",\"login\":\"usuario.alvo@eventmaster.com\"}")))
@@ -161,6 +162,9 @@ public class UsuarioController {
             @ApiResponse(responseCode = "200", description = "Usuario atualizado", content = @Content(
                     schema = @Schema(implementation = UsuarioListagemDTO.class),
                     examples = @ExampleObject(name = "respostaAtualizacao", value = "{\"nome\":\"Usuario Atualizado\",\"role\":\"SYSTEM\",\"login\":\"usuario.alvo@eventmaster.com\"}"))),
+            @ApiResponse(responseCode = "409", description = "Conflito de login ao atualizar usuario", content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(name = "erroConflitoLogin", value = "{\"error\":\"CONFLICT\",\"message\":\"Usuário já existe com o login: usuario.alvo@eventmaster.com\"}"))),
             @ApiResponse(responseCode = "400", description = "Falha ao atualizar usuario", content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(name = "erroAtualizacao", value = "{\"error\":\"BAD_REQUEST\",\"message\":\"Nao foi possivel atualizar usuario\"}")))
@@ -173,12 +177,15 @@ public class UsuarioController {
         logger.info("Parâmetro de entrada - email: {}", email);
         logger.info("Parâmetros de entrada - body: {}", dados);
         try {
-            UsuarioListagemDTO atualizado = segurancaService.atualizarUsuario(dados);
+            UsuarioListagemDTO atualizado = segurancaService.atualizarUsuario(email, dados);
             logger.info("Usuário atualizado com sucesso");
             logger.info("Fim do método atualizarUsuario");
             return ResponseEntity.ok(atualizado);
         } catch (UsuarioException e) {
             logger.error("Erro ao atualizar usuário", e);
+            if (e.getMessage() != null && e.getMessage().startsWith("Usuário já existe com o login:")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(buildError("CONFLICT", e.getMessage()));
+            }
             return ResponseEntity.badRequest().body(buildError("BAD_REQUEST", "Nao foi possivel atualizar usuario"));
         }
     }

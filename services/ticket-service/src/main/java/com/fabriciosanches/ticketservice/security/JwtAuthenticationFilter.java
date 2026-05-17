@@ -24,6 +24,11 @@ import java.util.Collections;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final String[] PUBLIC_PATH_PREFIXES = {
+            "/swagger-ui",
+            "/v3/api-docs"
+    };
+
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Value("${api.security.token.secret}")
@@ -33,14 +38,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private String issuer;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            return true;
+        }
+
+        String path = request.getServletPath();
+        if (path == null || path.isBlank()) {
+            path = request.getRequestURI();
+        }
+
+        if ("/swagger-ui.html".equals(path)) {
+            return true;
+        }
+
+        for (String prefix : PUBLIC_PATH_PREFIXES) {
+            if (path != null && path.startsWith(prefix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
         String token = extractToken(request.getHeader("Authorization"));
         if (token == null) {

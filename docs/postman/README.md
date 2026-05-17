@@ -151,7 +151,7 @@ Valores padrão atuais:
 - retorna a lista de perfis disponíveis
 
 #### 3 - Registrar usuario
-- status `200`
+- status `201`
 - cria um usuário dinâmico com login único por execução
 
 #### 4 - Buscar usuario criado
@@ -167,12 +167,12 @@ Valores padrão atuais:
 - valida o contrato atual do endpoint como uma lista JSON não vazia
 
 #### 7 - Excluir usuario
-- status `200`
+- status `204`
 - remove o usuário criado na execução
 
 #### 8 - Buscar usuario excluido
-- status `200`
-- valida o comportamento atual da API, que retorna payload com campos `null` após a exclusão
+- status `404`
+- valida o payload padrão de recurso não encontrado após a exclusão
 
 #### 9 - Logout
 - status `200`
@@ -234,7 +234,7 @@ Valores padrão atuais:
 - retorna a lista de perfis disponíveis
 
 #### 3 - Registrar usuario via Gateway
-- status `200`
+- status `201`
 - cria um usuário dinâmico com login único por execução
 
 #### 4 - Buscar usuario criado via Gateway
@@ -250,12 +250,12 @@ Valores padrão atuais:
 - valida o contrato atual do endpoint como uma lista JSON não vazia
 
 #### 7 - Excluir usuario via Gateway
-- status `200`
+- status `204`
 - remove o usuário criado na execução
 
 #### 8 - Buscar usuario excluido via Gateway
-- status `200`
-- valida o comportamento atual da API, que retorna payload com campos `null` após a exclusão
+- status `404`
+- valida o payload padrão de recurso não encontrado após a exclusão
 
 #### 9 - Logout via Gateway
 - status `200`

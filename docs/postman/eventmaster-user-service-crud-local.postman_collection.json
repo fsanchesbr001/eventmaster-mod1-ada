@@ -210,8 +210,8 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status 200 ao registrar usuario', function () {",
-              "    pm.response.to.have.status(200);",
+              "pm.test('Status 201 ao registrar usuario', function () {",
+              "    pm.response.to.have.status(201);",
               "});"
             ]
           }
@@ -406,8 +406,8 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status 200 ao excluir usuario', function () {",
-              "    pm.response.to.have.status(200);",
+              "pm.test('Status 204 ao excluir usuario', function () {",
+              "    pm.response.to.have.status(204);",
               "});"
             ]
           }
@@ -436,7 +436,7 @@
             "{{crudUserLogin}}"
           ]
         },
-        "description": "Valida o comportamento atual do endpoint apos a exclusao: resposta 200 com campos nulos quando o usuario nao existe."
+        "description": "Valida que a API retorna 404 ao buscar um usuario excluido."
       },
       "event": [
         {
@@ -444,15 +444,14 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status 200 ao buscar usuario excluido (comportamento atual)', function () {",
-              "    pm.response.to.have.status(200);",
+              "pm.test('Status 404 ao buscar usuario excluido', function () {",
+              "    pm.response.to.have.status(404);",
               "});",
               "",
               "const json = pm.response.json();",
-              "pm.test('Usuario excluido retorna payload nulo no comportamento atual', function () {",
-              "    pm.expect(json.login).to.eql(null);",
-              "    pm.expect(json.nome).to.eql(null);",
-              "    pm.expect(json.role).to.eql(null);",
+              "pm.test('Retorna payload padrao de nao encontrado', function () {",
+              "    pm.expect(json.error).to.eql('NOT_FOUND');",
+              "    pm.expect(json.message).to.eql('Usuario nao encontrado');",
               "});"
             ]
           }

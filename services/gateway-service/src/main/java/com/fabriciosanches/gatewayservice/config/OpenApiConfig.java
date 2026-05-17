@@ -29,6 +29,7 @@ public class OpenApiConfig {
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .schemaRequirement(securitySchemeName, new SecurityScheme()
                         .name(securitySchemeName)
+                        .description("JWT Bearer token obtido no user-service ou via gateway. Informe apenas o token no botão Authorize.")
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
                         .bearerFormat("JWT"));
