@@ -10,7 +10,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -29,8 +28,7 @@ public class SegurancaService {
             logger.warn("Usuário já existe com o login: {}", registerDTO.login());
             throw new UsuarioException("Usuário já existe com o login: " + registerDTO.login());
         }
-        var senhaAleatoria = Utilidades.gerarSenhaAleatoria();
-        var senhaGerada = Utilidades.encriptaSenha(senhaAleatoria);
+        var senhaGerada = Utilidades.encriptaSenha(registerDTO.senha());
 
         Usuario usuario = new Usuario(registerDTO.login(), senhaGerada, registerDTO.role(),registerDTO.nome());
 
@@ -57,17 +55,26 @@ public class SegurancaService {
         Usuario usuario = usuarioRepository.findByLoginUsuario(email);
         if (usuario == null) {
             logger.warn("Usuário não encontrado na tabela usuarios para o email: {}", email);
+            return null;
         }
         return new UsuarioListagemDTO(usuario);
     }
 
-    public UsuarioListagemDTO atualizarUsuario(UsuarioListagemDTO dados) {
-        logger.info("Iniciando atualização do usuário: {}", dados.login());
+    public UsuarioListagemDTO atualizarUsuario(String email, UsuarioListagemDTO dados) {
+        logger.info("Iniciando atualização do usuário localizado por: {}", email);
 
-        Usuario usuario = usuarioRepository.findByLoginUsuario(dados.login());
+        Usuario usuario = usuarioRepository.findByLoginUsuario(email);
         if (usuario == null) {
-            logger.warn("Usuário não encontrado na tabela usuarios para o email: {}", dados.login());
-            throw new UsuarioException("Usuário não encontrado na tabela usuarios: " + dados.login());
+            logger.warn("Usuário não encontrado na tabela usuarios para o email: {}", email);
+            throw new UsuarioException("Usuário não encontrado na tabela usuarios: " + email);
+        }
+
+        if (dados.login() != null && !dados.login().isBlank() && !dados.login().equalsIgnoreCase(email)) {
+            Usuario usuarioComNovoLogin = usuarioRepository.findByLoginUsuario(dados.login());
+            if (usuarioComNovoLogin != null) {
+                logger.warn("Já existe usuário com o login informado para atualização: {}", dados.login());
+                throw new UsuarioException("Usuário já existe com o login: " + dados.login());
+            }
         }
 
         // Atualiza tabela usuarios
@@ -85,8 +92,8 @@ public class SegurancaService {
 
     public List<Usuario> findAll() {
         logger.info("Lista de  usuários ");
-        List<Usuario> listaUsuario = Collections.singletonList(usuarioRepository.findAll().stream().findFirst().orElse(null));
-        if (listaUsuario == null) {
+        List<Usuario> listaUsuario = usuarioRepository.findAll();
+        if (listaUsuario.isEmpty()) {
             logger.warn("Lista de usuários vazia");
              throw new UsuarioException("Lista de usuários vazia");
         }

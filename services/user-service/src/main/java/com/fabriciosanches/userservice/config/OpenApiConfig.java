@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
 )
 @SecurityScheme(
         name = "bearerAuth",
-        description = "JWT Bearer token obtido em /auth/login. No Swagger UI use o botao Authorize e informe apenas o token.",
+        description = "JWT Bearer token obtido no user-service ou via gateway. Informe apenas o token no botão Authorize.",
         scheme = "bearer",
         type = SecuritySchemeType.HTTP,
         bearerFormat = "JWT",

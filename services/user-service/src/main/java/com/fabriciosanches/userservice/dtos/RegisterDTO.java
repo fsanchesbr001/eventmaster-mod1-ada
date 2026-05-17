@@ -16,6 +16,9 @@ public record RegisterDTO(
         if (login == null || login.isBlank()) {
             throw new IllegalArgumentException("Login não pode ser nulo ou vazio.");
         }
+        if (senha == null || senha.isBlank()) {
+            throw new IllegalArgumentException("Senha não pode ser nula ou vazia.");
+        }
         if (role == null) {
             throw new IllegalArgumentException("Role não pode ser nula.");
         }

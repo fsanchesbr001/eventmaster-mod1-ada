@@ -211,8 +211,8 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status 200 ao registrar usuario via gateway', function () {",
-              "    pm.response.to.have.status(200);",
+              "pm.test('Status 201 ao registrar usuario via gateway', function () {",
+              "    pm.response.to.have.status(201);",
               "});"
             ]
           }
@@ -407,8 +407,8 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status 200 ao excluir usuario via gateway', function () {",
-              "    pm.response.to.have.status(200);",
+              "pm.test('Status 204 ao excluir usuario via gateway', function () {",
+              "    pm.response.to.have.status(204);",
               "});"
             ]
           }
@@ -437,7 +437,7 @@
             "{{crudUserLogin}}"
           ]
         },
-        "description": "Valida o comportamento atual da API após a exclusão, via gateway: retorno 200 com campos nulos."
+        "description": "Valida via gateway que a API retorna 404 ao buscar um usuario excluido."
       },
       "event": [
         {
@@ -445,15 +445,14 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status 200 ao buscar usuario excluido via gateway (comportamento atual)', function () {",
-              "    pm.response.to.have.status(200);",
+              "pm.test('Status 404 ao buscar usuario excluido via gateway', function () {",
+              "    pm.response.to.have.status(404);",
               "});",
               "",
               "const json = pm.response.json();",
-              "pm.test('Usuario excluido retorna payload nulo no comportamento atual via gateway', function () {",
-              "    pm.expect(json.login).to.eql(null);",
-              "    pm.expect(json.nome).to.eql(null);",
-              "    pm.expect(json.role).to.eql(null);",
+              "pm.test('Retorna payload padrao de nao encontrado via gateway', function () {",
+              "    pm.expect(json.error).to.eql('NOT_FOUND');",
+              "    pm.expect(json.message).to.eql('Usuario nao encontrado');",
               "});"
             ]
           }
