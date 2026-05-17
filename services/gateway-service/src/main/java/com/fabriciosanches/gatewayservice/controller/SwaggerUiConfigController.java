@@ -1,15 +1,25 @@
 package com.fabriciosanches.gatewayservice.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 public class SwaggerUiConfigController {
+
+    @GetMapping({"/swagger-ui", "/swagger-ui/", "/swagger-ui/index.html"})
+    public ResponseEntity<Void> swaggerUiAlias() {
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create("/swagger-ui.html"))
+                .build();
+    }
 
     @GetMapping(value = "/swagger-config.json", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> swaggerConfig(ServerHttpRequest request) {

@@ -17,6 +17,7 @@ import com.fabriciosanches.orderservice.enums.FormaPagamento;
 import com.fabriciosanches.orderservice.enums.StatusPedido;
 import com.fabriciosanches.orderservice.enums.TipoIngresso;
 import com.fabriciosanches.orderservice.exceptions.OrderIntegrationException;
+import com.fabriciosanches.orderservice.exceptions.OrderNotFoundException;
 import com.fabriciosanches.orderservice.exceptions.OrderValidationException;
 import com.fabriciosanches.orderservice.repository.OrderRepository;
 import org.slf4j.Logger;
@@ -33,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -170,6 +172,11 @@ public class OrderService {
                 throw new OrderIntegrationException("Evento não encontrado ou sem preço base configurado.");
             }
             return evento;
+        } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 404) {
+                throw new OrderNotFoundException("Evento não encontrado para o id informado.");
+            }
+            throw new OrderIntegrationException("Falha ao consultar o event-service para o evento informado.");
         } catch (RestClientException ex) {
             throw new OrderIntegrationException("Falha ao consultar o event-service para o evento informado.");
         }

@@ -1,6 +1,5 @@
 package com.fabriciosanches.userservice.controller;
 
-import com.fabriciosanches.userservice.domain.Usuario;
 import com.fabriciosanches.userservice.dtos.RegisterDTO;
 import com.fabriciosanches.userservice.dtos.RoleOptionDTO;
 import com.fabriciosanches.userservice.dtos.UserRolesDTO;
@@ -44,7 +43,7 @@ public class UsuarioController {
     }
 
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("/roles")
+    @GetMapping({"/roles", "/roles/"})
     @Operation(summary = "Listar roles disponiveis", description = "Retorna os perfis de acesso permitidos para cadastro e exibicao no frontend.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Roles retornadas com sucesso", content = @Content(
@@ -80,7 +79,7 @@ public class UsuarioController {
 
     //Testado
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/registrar-usuario")
+    @PostMapping({"/registrar-usuario", "/registrar-usuario/"})
     @Transactional
     @Operation(summary = "Registrar usuario", description = "Cria um novo usuario no sistema. Requer role ADMIN.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -117,7 +116,7 @@ public class UsuarioController {
 
     //Testado
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/excluir-usuario")
+    @PostMapping({"/excluir-usuario", "/excluir-usuario/"})
     @Transactional
     @Operation(summary = "Excluir usuario", description = "Exclui um usuario pelo login informado no payload. Requer role ADMIN.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -149,7 +148,7 @@ public class UsuarioController {
 
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/atualizar-usuario/{email}")
+    @PutMapping({"/atualizar-usuario/{email}", "/atualizar-usuario/{email}/"})
     @Transactional
     @Operation(summary = "Atualizar usuario", description = "Atualiza os dados de um usuario. Requer role ADMIN.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -190,13 +189,13 @@ public class UsuarioController {
         }
     }
 
-    @GetMapping("/listar-todos-usuarios")
+    @GetMapping({"/listar-todos-usuarios", "/listar-todos-usuarios/"})
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Listar todos os usuarios", description = "Retorna todos os usuarios cadastrados. Requer role ADMIN.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de usuarios retornada", content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = Usuario.class)),
-                    examples = @ExampleObject(name = "usuarios", value = "[{\"id\":1,\"login\":\"admin@eventmaster.com\",\"role\":\"ADMIN\",\"nome\":\"Administrador\"}]"))),
+                    array = @ArraySchema(schema = @Schema(implementation = UsuarioListagemDTO.class)),
+                    examples = @ExampleObject(name = "usuarios", value = "[{\"nome\":\"Administrador\",\"role\":\"ADMIN\",\"login\":\"admin@eventmaster.com\"}]"))),
             @ApiResponse(responseCode = "204", description = "Nenhum usuario encontrado"),
             @ApiResponse(responseCode = "400", description = "Erro ao listar usuarios", content = @Content(
                     mediaType = "application/json",
@@ -205,7 +204,7 @@ public class UsuarioController {
     public ResponseEntity<?> listarTodosUsuarios() {
         logger.info("Inicio do método listarTodosUsuarios - UsuarioController");
         try {
-            List<Usuario> response = segurancaService.findAll();
+            List<UsuarioListagemDTO> response = segurancaService.findAll();
             logger.info("Lista de usuários obtida com sucesso");
             if (response.isEmpty()) {
                 logger.info("Nenhum usuário encontrado");
@@ -220,7 +219,7 @@ public class UsuarioController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SYSTEM')")
-    @GetMapping("/buscar-usuario/{email}")
+    @GetMapping({"/buscar-usuario/{email}", "/buscar-usuario/{email}/"})
     @Operation(summary = "Buscar usuario por email", description = "Busca um usuario pelo login/email informado na rota.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Usuario encontrado", content = @Content(

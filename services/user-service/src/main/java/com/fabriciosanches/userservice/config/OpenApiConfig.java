@@ -7,7 +7,11 @@ import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 @OpenAPIDefinition(
@@ -28,5 +32,21 @@ import org.springframework.context.annotation.Configuration;
         in = SecuritySchemeIn.HEADER
 )
 public class OpenApiConfig {
+
+    @Bean
+    public OpenApiCustomizer removeTrailingSlashDuplicatePaths() {
+        return openApi -> {
+            if (openApi.getPaths() == null || openApi.getPaths().isEmpty()) {
+                return;
+            }
+
+            List<String> trailingSlashDuplicates = openApi.getPaths().keySet().stream()
+                    .filter(path -> path.endsWith("/") && path.length() > 1)
+                    .filter(path -> openApi.getPaths().containsKey(path.substring(0, path.length() - 1)))
+                    .toList();
+
+            trailingSlashDuplicates.forEach(path -> openApi.getPaths().remove(path));
+        };
+    }
 }
 

@@ -5,6 +5,7 @@ import com.fabriciosanches.orderservice.dtos.OrderRequestDTO;
 import com.fabriciosanches.orderservice.dtos.OrderResponseDTO;
 import com.fabriciosanches.orderservice.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,7 +33,7 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @PostMapping
+    @PostMapping({"", "/"})
     @Operation(summary = "Criar pedido", description = "Cria um pedido, reserva o estoque no Redis via ticket-service e publica PEDIDO_REALIZADO no Kafka para o payment-service concluir a confirmação ou o cancelamento.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
@@ -47,13 +48,18 @@ public class OrderController {
             @ApiResponse(responseCode = "400", description = "Pedido inválido", content = @Content(
                     schema = @Schema(implementation = ApiErrorResponseDTO.class),
                     examples = @ExampleObject(value = "{\"error\":\"BAD_REQUEST\",\"message\":\"Forma de pagamento é obrigatória\"}"))),
+            @ApiResponse(responseCode = "404", description = "Evento não encontrado", content = @Content(
+                    schema = @Schema(implementation = ApiErrorResponseDTO.class),
+                    examples = @ExampleObject(value = "{\"error\":\"NOT_FOUND\",\"message\":\"Evento não encontrado para o id informado.\"}"))),
             @ApiResponse(responseCode = "409", description = "Falha de integração ou estoque insuficiente", content = @Content(
                     schema = @Schema(implementation = ApiErrorResponseDTO.class),
                     examples = @ExampleObject(value = "{\"error\":\"CONFLICT\",\"message\":\"Ingressos indisponíveis ou esgotados no Redis para o evento informado.\"}")))
     })
     public ResponseEntity<OrderResponseDTO> criar(
             @RequestBody OrderRequestDTO dto,
+            @Parameter(hidden = true)
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
+            @Parameter(hidden = true)
             Authentication authentication) {
         OrderResponseDTO resposta = orderService.criarPedido(dto, authentication.getName(), authorizationHeader);
         return ResponseEntity.status(HttpStatus.CREATED).body(resposta);

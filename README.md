@@ -153,3 +153,12 @@ start .\mvnw.cmd -pl services/gateway-service spring-boot:run
 echo Ecossistema EventMaster inicializado com sucesso!
 
 ```
+Preparação de Ambiente
+Para obter o projeto clone o seguinte repositório:
+https://github.com/fsanchesbr001/eventmaster-mod1-ada
+Por tratar-se de aplicação que utiliza conteinerização, para ter o ambiente funcional execute o comando:
+```.\subir-plataforma.ps1 -Mode Compose``` na raiz do projeto no powershel.
+
+Importante: Certifique-se de ter o Docker Desktop instalado e rodando para que os serviços de Kafka, Redis e MySQL sejam provisionados corretamente. O script `subir-plataforma.ps1` irá orquestrar a inicialização dos microsserviços na ordem correta, garantindo que as dependências estejam satisfeitas antes de cada serviço tentar se conectar.
+
+Na pasta `docs` do repositório, há um encontra-se `Relatório Técnico EventMaster.pdf` com o relatório técnico desta aplicação.

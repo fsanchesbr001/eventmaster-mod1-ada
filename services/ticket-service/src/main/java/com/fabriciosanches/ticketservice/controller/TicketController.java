@@ -38,7 +38,7 @@ public class TicketController {
         this.ticketService = ticketService;
     }
 
-    @PostMapping
+    @PostMapping({"", "/"})
     @Operation(summary = "Criar ingresso", description = "Cria um novo ingresso com dados do evento e do participante.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
@@ -61,7 +61,7 @@ public class TicketController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ticketService.criar(request));
     }
 
-    @GetMapping
+    @GetMapping({"", "/"})
     @Operation(summary = "Listar ingressos", description = "Retorna todos os ingressos cadastrados.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista retornada com sucesso", content = @Content(
@@ -74,7 +74,7 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.listarTodos());
     }
 
-    @PostMapping("/reserva")
+    @PostMapping({"/reserva", "/reserva/"})
     @Operation(summary = "Reservar ingressos no Redis", description = "Reserva uma quantidade de ingressos do evento no Redis para uso transacional pelo order-service.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
@@ -93,7 +93,7 @@ public class TicketController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping({"/{id}", "/{id}/"})
     @Operation(summary = "Buscar ingresso por id", description = "Retorna os dados de um ingresso específico.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Ingresso encontrado", content = @Content(
@@ -108,7 +108,7 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.buscarPorId(id));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping({"/{id}", "/{id}/"})
     @Operation(summary = "Atualizar ingresso", description = "Atualiza todos os dados de um ingresso existente.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
@@ -131,7 +131,7 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.atualizar(id, request));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping({"/{id}", "/{id}/"})
     @Operation(summary = "Excluir ingresso", description = "Remove um ingresso pelo identificador informado.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Ingresso excluído com sucesso"),

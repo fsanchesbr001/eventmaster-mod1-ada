@@ -9,6 +9,12 @@ services:
       - MYSQL_ROOT_PASSWORD=root
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - eventmaster-network
 
@@ -18,6 +24,12 @@ services:
     container_name: eventmaster-redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     networks:
       - eventmaster-network
 
@@ -42,6 +54,173 @@ services:
       - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
       - KAFKA_LOG_DIRS=/tmp/kraft-combined-logs
       - CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 20s
+    networks:
+      - eventmaster-network
+
+  # 4. Servicos da aplicacao
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        MODULE_PATH: services/user-service
+    container_name: eventmaster-user-service
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      DB_IP: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PWD: root
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - eventmaster-network
+
+  event-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        MODULE_PATH: services/event-service
+    container_name: eventmaster-event-service
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: 8082
+      DB_IP: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PWD: root
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    networks:
+      - eventmaster-network
+
+  ticket-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        MODULE_PATH: services/ticket-service
+    container_name: eventmaster-ticket-service
+    ports:
+      - "8083:8083"
+    environment:
+      PORT: 8083
+      DB_IP: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PWD: root
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    networks:
+      - eventmaster-network
+
+  order-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        MODULE_PATH: services/order-service
+    container_name: eventmaster-order-service
+    ports:
+      - "8084:8084"
+    environment:
+      PORT: 8084
+      DB_IP: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PWD: root
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      EVENT_SERVICE_ENDPOINT: http://event-service:8082/event-service/eventos
+      TICKET_SERVICE_ENDPOINT: http://ticket-service:8083/ticket-service/ingressos
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      event-service:
+        condition: service_started
+      ticket-service:
+        condition: service_started
+    networks:
+      - eventmaster-network
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        MODULE_PATH: services/payment-service
+    container_name: eventmaster-payment-service
+    ports:
+      - "8086:8086"
+    environment:
+      PORT: 8086
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+      event-service:
+        condition: service_started
+      ticket-service:
+        condition: service_started
+    networks:
+      - eventmaster-network
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      args:
+        MODULE_PATH: services/gateway-service
+    container_name: eventmaster-gateway-service
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: 8081
+      USER_SERVICE_URL: http://user-service:8080
+      EVENT_SERVICE_URL: http://event-service:8082
+      TICKET_SERVICE_URL: http://ticket-service:8083
+      ORDER_SERVICE_URL: http://order-service:8084
+    depends_on:
+      user-service:
+        condition: service_started
+      event-service:
+        condition: service_started
+      ticket-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
     networks:
       - eventmaster-network
 
