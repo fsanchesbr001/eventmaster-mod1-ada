@@ -51,7 +51,7 @@ public class AutenticacaoController {
     }
 
     //Testado
-    @PostMapping("/login")
+    @PostMapping({"/login", "/login/"})
     @Operation(summary = "Efetuar login", description = "Autentica usuario e retorna JWT para uso nos endpoints protegidos.")
     @SecurityRequirements
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -120,7 +120,7 @@ public class AutenticacaoController {
      *
      * @return 200 OK com mensagem de confirmação, ou 400 se não houver sessão ativa
      */
-    @PostMapping("/logout")
+    @PostMapping({"/logout", "/logout/"})
     @Operation(summary = "Efetuar logout", description = "Revoga o JWT atual e encerra a sessao do usuario autenticado.")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {

@@ -16,6 +16,12 @@ public class OrderExceptionHandler {
         return ResponseEntity.badRequest().body(Map.of("error", "BAD_REQUEST", "message", ex.getMessage()));
     }
 
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(OrderNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "NOT_FOUND", "message", ex.getMessage()));
+    }
+
     @ExceptionHandler(OrderIntegrationException.class)
     public ResponseEntity<Map<String, String>> handleIntegration(OrderIntegrationException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)

@@ -8,7 +8,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.servers.Server;
+import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 @OpenAPIDefinition(
@@ -30,5 +34,21 @@ import org.springframework.context.annotation.Configuration;
         description = "JWT Bearer token obtido no user-service ou via gateway. Informe apenas o token no botão Authorize."
 )
 public class OpenApiConfig {
+
+    @Bean
+    public OpenApiCustomizer removeTrailingSlashDuplicatePaths() {
+        return openApi -> {
+            if (openApi.getPaths() == null || openApi.getPaths().isEmpty()) {
+                return;
+            }
+
+            List<String> trailingSlashDuplicates = openApi.getPaths().keySet().stream()
+                    .filter(path -> path.endsWith("/") && path.length() > 1)
+                    .filter(path -> openApi.getPaths().containsKey(path.substring(0, path.length() - 1)))
+                    .toList();
+
+            trailingSlashDuplicates.forEach(path -> openApi.getPaths().remove(path));
+        };
+    }
 }
 

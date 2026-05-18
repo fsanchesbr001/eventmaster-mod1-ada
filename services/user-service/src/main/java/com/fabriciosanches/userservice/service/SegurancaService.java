@@ -90,14 +90,16 @@ public class SegurancaService {
         return new UsuarioListagemDTO(usuario);
     }
 
-    public List<Usuario> findAll() {
+    public List<UsuarioListagemDTO> findAll() {
         logger.info("Lista de  usuários ");
         List<Usuario> listaUsuario = usuarioRepository.findAll();
         if (listaUsuario.isEmpty()) {
             logger.warn("Lista de usuários vazia");
              throw new UsuarioException("Lista de usuários vazia");
         }
-        return listaUsuario;
+        return listaUsuario.stream()
+                .map(UsuarioListagemDTO::new)
+                .toList();
     }
 
 }

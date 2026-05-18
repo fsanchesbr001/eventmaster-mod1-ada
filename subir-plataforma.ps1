@@ -1,5 +1,15 @@
 param(
+    [ValidateSet('Local', 'Compose')]
+    [string]$Mode = 'Local',
+
+    [switch]$Down,
+
+    [switch]$Volumes,
+
     [switch]$SkipDocker,
+
+    [switch]$SkipBuild,
+
     [int]$InitialDelaySeconds = 15
 )
 
@@ -41,10 +51,70 @@ function Start-ServiceWindow {
         -WorkingDirectory $root
 }
 
+function Start-ComposeStack {
+    param(
+        [switch]$SkipBuild
+    )
+
+    $composeArgs = @('compose', 'up', '-d')
+    if (-not $SkipBuild) {
+        $composeArgs += '--build'
+    }
+
+    Write-Host "[EventMaster] Executando: docker $($composeArgs -join ' ')"
+    & docker @composeArgs
+}
+
+function Stop-ComposeStack {
+    param(
+        [switch]$Volumes
+    )
+
+    $composeArgs = @('compose', 'down')
+    if ($Volumes) {
+        $composeArgs += '-v'
+    }
+
+    Write-Host "[EventMaster] Executando: docker $($composeArgs -join ' ')"
+    & docker @composeArgs
+}
+
 Write-Host "[EventMaster] Diretório raiz: $root"
+Write-Host "[EventMaster] Modo de execução: $Mode"
 
 if (-not (Test-Path ".\\mvnw.cmd")) {
     throw "Arquivo mvnw.cmd não encontrado na raiz do monorepo."
+}
+
+if ($Down) {
+    if ($SkipDocker) {
+        Write-Host "[EventMaster] Aviso: -SkipDocker será ignorado quando -Down for utilizado."
+    }
+    if ($SkipBuild) {
+        Write-Host "[EventMaster] Aviso: -SkipBuild será ignorado quando -Down for utilizado."
+    }
+
+    Write-Host "[1/1] Derrubando stack Docker Compose..."
+    Stop-ComposeStack -Volumes:$Volumes
+
+    Write-Host "[EventMaster] Stack Docker Compose encerrada com sucesso."
+    Write-Host "[EventMaster] Exemplo: .\\subir-plataforma.ps1 -Down"
+    Write-Host "[EventMaster] Exemplo removendo volumes: .\\subir-plataforma.ps1 -Down -Volumes"
+    return
+}
+
+if ($Mode -eq 'Compose') {
+    if ($SkipDocker) {
+        throw "O parâmetro -SkipDocker não se aplica ao modo Compose. Use -Mode Local para reaproveitar apenas a infraestrutura existente."
+    }
+
+    Write-Host "[1/1] Subindo stack completa via Docker Compose..."
+    Start-ComposeStack -SkipBuild:$SkipBuild
+
+    Write-Host "[EventMaster] Stack Docker Compose disparada com sucesso."
+    Write-Host "[EventMaster] Exemplo: .\\subir-plataforma.ps1 -Mode Compose"
+    Write-Host "[EventMaster] Exemplo sem rebuild: .\\subir-plataforma.ps1 -Mode Compose -SkipBuild"
+    return
 }
 
 if (-not $SkipDocker) {

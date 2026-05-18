@@ -11,14 +11,7 @@ CREATE TABLE `usuarios` (
 
 INSERT INTO usuarios
 (login, senha, role, nome)
-VALUES('fsanchesbr001@gmail.com',
-       '$2a$10$i42msHOOetd3HmoNwsbwXO3l.RVdpvXVqdvAY/VT3oZUhANMeBXkO',
+VALUES('eventmaster@teste.com',
+       '$2a$10$2DiXZWqvZxXeN9MITJabPeLN5w.fFZlsbBWJNH4yVjyu5cmIFPb8y',
        'ADMIN',
-       'Fabricio Sanches');
-
-INSERT INTO usuarios
-(login, senha, role, nome)
-VALUES('fabricio@fabriciosanches.com',
-       '$2a$10$i42msHOOetd3HmoNwsbwXO3l.RVdpvXVqdvAY/VT3oZUhANMeBXkO',
-       'USER',
-       'Fabricio Sanches 2');
+       'Eventmaster Admin');
